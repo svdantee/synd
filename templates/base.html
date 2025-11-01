@@ -18,11 +18,12 @@
                     {% if current_user.is_admin() %}
                         <a href="{{ url_for('upload') }}" class="nav-link">上传文档</a>
                         <a href="{{ url_for('user_management') }}" class="nav-link">用户管理</a>
+                        <a href="{{ url_for('admin_create_user') }}" class="nav-link">创建用户</a>
                     {% endif %}
-                    <a href="{{ url_for('register') }}" class="nav-link">创建用户</a>
                     <a href="{{ url_for('logout') }}" class="nav-link">退出</a>
                 {% else %}
                     <a href="{{ url_for('login') }}" class="nav-link">登录</a>
+                    <a href="{{ url_for('register') }}" class="nav-link">注册</a>
                 {% endif %}
             </div>
         </div>
@@ -43,6 +44,16 @@
                 {% endif %}
             {% endwith %}
 
+            {% block back_button %}
+            {% if request.path != '/' and request.path != '/login' and request.path != '/register' and request.path != '/dashboard' %}
+            <div class="back-button-container">
+                <button onclick="history.back()" class="btn btn-secondary btn-back" title="返回上一页">
+                    ← 返回上一页
+                </button>
+            </div>
+            {% endif %}
+            {% endblock %}
+            
             {% block content %}{% endblock %}
         </div>
     </main>

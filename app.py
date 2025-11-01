@@ -35,7 +35,8 @@ def allowed_file(filename):
 def index():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
-    return redirect(url_for('login'))
+    # 未登录用户显示欢迎页面
+    return render_template('index.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -69,21 +70,28 @@ def logout():
     return redirect(url_for('login'))
 
 @app.route('/register', methods=['GET', 'POST'])
-@login_required
 def register():
-    # 只有管理员和评审者可以创建用户
-    if not (current_user.is_admin() or current_user.role == 'reviewer'):
-        flash('您没有权限访问此页面', 'error')
+    # 如果已登录，不允许注册
+    if current_user.is_authenticated:
+        flash('您已登录，如需注册新账号请先退出', 'error')
         return redirect(url_for('dashboard'))
     
     if request.method == 'POST':
         username = request.form.get('username')
         email = request.form.get('email')
         password = request.form.get('password')
-        role = request.form.get('role', 'reviewer')
+        confirm_password = request.form.get('confirm_password')
         
         if not username or not email or not password:
             flash('请填写所有必填字段', 'error')
+            return render_template('register.html')
+        
+        if password != confirm_password:
+            flash('两次输入的密码不一致', 'error')
+            return render_template('register.html')
+        
+        if len(password) < 6:
+            flash('密码长度至少6位', 'error')
             return render_template('register.html')
         
         if User.query.filter_by(username=username).first():
@@ -94,11 +102,45 @@ def register():
             flash('邮箱已被使用', 'error')
             return render_template('register.html')
         
-        # 评审者只能创建评审者
-        if current_user.role == 'reviewer' and role == 'admin':
-            role = 'reviewer'
+        # 新注册用户默认为评审者，且需要管理员审批（is_active=False）
+        user = User(username=username, email=email, role='reviewer', is_active=False)
+        user.set_password(password)
+        db.session.add(user)
+        db.session.commit()
         
-        user = User(username=username, email=email, role=role)
+        flash('注册成功！您的账号正在等待管理员审核，审核通过后即可登录。', 'success')
+        return redirect(url_for('login'))
+    
+    return render_template('register.html')
+
+@app.route('/admin/create_user', methods=['GET', 'POST'])
+@login_required
+def admin_create_user():
+    """管理员创建用户（无需审批，立即激活）"""
+    if not current_user.is_admin():
+        flash('只有管理员可以访问此页面', 'error')
+        return redirect(url_for('dashboard'))
+    
+    if request.method == 'POST':
+        username = request.form.get('username')
+        email = request.form.get('email')
+        password = request.form.get('password')
+        role = request.form.get('role', 'reviewer')
+        is_active = request.form.get('is_active') == 'on'
+        
+        if not username or not email or not password:
+            flash('请填写所有必填字段', 'error')
+            return render_template('admin_create_user.html')
+        
+        if User.query.filter_by(username=username).first():
+            flash('用户名已存在', 'error')
+            return render_template('admin_create_user.html')
+        
+        if User.query.filter_by(email=email).first():
+            flash('邮箱已被使用', 'error')
+            return render_template('admin_create_user.html')
+        
+        user = User(username=username, email=email, role=role, is_active=is_active)
         user.set_password(password)
         db.session.add(user)
         db.session.commit()
@@ -106,7 +148,7 @@ def register():
         flash('用户创建成功', 'success')
         return redirect(url_for('user_management'))
     
-    return render_template('register.html')
+    return render_template('admin_create_user.html')
 
 @app.route('/dashboard')
 @login_required
@@ -279,7 +321,8 @@ def user_management():
         return redirect(url_for('dashboard'))
     
     users = User.query.order_by(User.created_at.desc()).all()
-    return render_template('user_management.html', users=users)
+    pending_count = User.query.filter_by(is_active=False).count()
+    return render_template('user_management.html', users=users, pending_count=pending_count)
 
 @app.route('/user/<int:user_id>/edit', methods=['GET', 'POST'])
 @login_required

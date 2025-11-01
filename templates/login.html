@@ -18,7 +18,11 @@
             <button type="submit" class="btn btn-primary btn-block">登录</button>
         </form>
         <div class="auth-footer">
+            <p>还没有账号？<a href="{{ url_for('register') }}">立即注册</a></p>
             <p>默认管理员账户: admin / admin123</p>
+            <p style="margin-top: 1rem;">
+                <a href="{{ url_for('index') }}" style="color: var(--secondary-color); text-decoration: none;">← 返回首页</a>
+            </p>
         </div>
     </div>
 </div>

@@ -627,6 +627,91 @@ body {
     margin-bottom: 2rem;
 }
 
+/* 后退按钮 */
+.back-button-container {
+    margin-bottom: 1.5rem;
+}
+
+.btn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+}
+
+/* 欢迎页面 */
+.welcome-page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 60vh;
+    padding: 2rem 0;
+}
+
+.welcome-content {
+    text-align: center;
+    max-width: 600px;
+}
+
+.welcome-content h1 {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    color: var(--primary-color);
+}
+
+.welcome-description {
+    font-size: 1.1rem;
+    color: var(--secondary-color);
+    margin-bottom: 2rem;
+}
+
+.welcome-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-bottom: 3rem;
+    flex-wrap: wrap;
+}
+
+.btn-lg {
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+}
+
+.welcome-info {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    margin-bottom: 2rem;
+}
+
+.welcome-info h3 {
+    margin-bottom: 1rem;
+    color: var(--dark-text);
+}
+
+.feature-list {
+    list-style: none;
+    text-align: left;
+    max-width: 300px;
+    margin: 0 auto;
+}
+
+.feature-list li {
+    padding: 0.5rem 0;
+    font-size: 1rem;
+}
+
+.welcome-note {
+    background: var(--light-bg);
+    padding: 1rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    color: var(--secondary-color);
+}
+
 /* 页脚 */
 .footer {
     background-color: white;
