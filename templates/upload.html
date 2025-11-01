@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}上传文档 - 文档评审系统{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>上传文档</h1>
+</div>
+
+<div class="form-card">
+    <form method="POST" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="title">文档标题 *</label>
+            <input type="text" id="title" name="title" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="description">文档描述</label>
+            <textarea id="description" name="description" rows="4"></textarea>
+        </div>
+        
+        <div class="form-group">
+            <label for="file">选择文件 *</label>
+            <input type="file" id="file" name="file" required accept=".pdf,.doc,.docx,.txt,.xlsx,.xls">
+            <small>支持格式: PDF, DOC, DOCX, TXT, XLSX, XLS (最大16MB)</small>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">上传文档</button>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">取消</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

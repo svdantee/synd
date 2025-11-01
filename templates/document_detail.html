@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}{{ document.title }} - 文档评审系统{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>{{ document.title }}</h1>
+    <div class="header-actions">
+        <a href="{{ url_for('download_document', doc_id=document.id) }}" class="btn btn-primary">下载文档</a>
+        {% if not current_user.is_admin() and not user_review %}
+        <a href="{{ url_for('review_document', doc_id=document.id) }}" class="btn btn-success">开始评审</a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="document-info">
+    <div class="info-grid">
+        <div class="info-item">
+            <label>文档ID:</label>
+            <span>{{ document.id }}</span>
+        </div>
+        <div class="info-item">
+            <label>上传者:</label>
+            <span>{{ document.uploader.username }}</span>
+        </div>
+        <div class="info-item">
+            <label>状态:</label>
+            <span class="status-badge status-{{ document.status }}">
+                {% if document.status == 'pending' %}待评审
+                {% elif document.status == 'reviewing' %}评审中
+                {% elif document.status == 'completed' %}已完成
+                {% else %}{{ document.status }}{% endif %}
+            </span>
+        </div>
+        <div class="info-item">
+            <label>上传时间:</label>
+            <span>{{ document.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</span>
+        </div>
+        <div class="info-item">
+            <label>平均分:</label>
+            <span>{% if average_score %}{{ average_score }}分{% else %}暂无评分{% endif %}</span>
+        </div>
+        <div class="info-item">
+            <label>评审数量:</label>
+            <span>{{ document.get_review_count() }}</span>
+        </div>
+    </div>
+    
+    {% if document.description %}
+    <div class="description-section">
+        <h3>描述</h3>
+        <p>{{ document.description }}</p>
+    </div>
+    {% endif %}
+</div>
+
+<div class="section">
+    <h2>评审列表</h2>
+    {% if reviews %}
+    <div class="reviews-list">
+        {% for review in reviews %}
+        <div class="review-card">
+            <div class="review-header">
+                <span class="reviewer-name">{{ review.reviewer.username }}</span>
+                <span class="review-score">评分: {{ review.score }}分</span>
+                <span class="review-date">{{ review.updated_at.strftime('%Y-%m-%d %H:%M') }}</span>
+            </div>
+            {% if review.comment %}
+            <div class="review-comment">
+                <strong>评审意见:</strong>
+                <p>{{ review.comment }}</p>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-center">暂无评审记录</p>
+    {% endif %}
+</div>
+
+{% if user_review and not current_user.is_admin() %}
+<div class="section">
+    <h2>我的评审</h2>
+    <div class="review-card highlight">
+        <div class="review-header">
+            <span class="reviewer-name">我的评审</span>
+            <span class="review-score">评分: {{ user_review.score }}分</span>
+            <span class="review-date">{{ user_review.updated_at.strftime('%Y-%m-%d %H:%M') }}</span>
+        </div>
+        {% if user_review.comment %}
+        <div class="review-comment">
+            <strong>评审意见:</strong>
+            <p>{{ user_review.comment }}</p>
+        </div>
+        {% endif %}
+        <div class="review-actions">
+            <a href="{{ url_for('review_document', doc_id=document.id) }}" class="btn btn-sm btn-primary">修改评审</a>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+

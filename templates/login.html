@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}登录 - 文档评审系统{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <h2>用户登录</h2>
+        <form method="POST" action="{{ url_for('login') }}">
+            <div class="form-group">
+                <label for="username">用户名</label>
+                <input type="text" id="username" name="username" required autofocus>
+            </div>
+            <div class="form-group">
+                <label for="password">密码</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">登录</button>
+        </form>
+        <div class="auth-footer">
+            <p>默认管理员账户: admin / admin123</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

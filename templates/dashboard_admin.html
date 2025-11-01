@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}管理员控制台 - 文档评审系统{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h1>管理员控制台</h1>
+    <a href="{{ url_for('upload') }}" class="btn btn-primary">上传新文档</a>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <h3>总文档数</h3>
+        <p class="stat-number">{{ total_docs }}</p>
+    </div>
+    <div class="stat-card">
+        <h3>待评审</h3>
+        <p class="stat-number">{{ pending_docs }}</p>
+    </div>
+    <div class="stat-card">
+        <h3>已完成</h3>
+        <p class="stat-number">{{ completed_docs }}</p>
+    </div>
+</div>
+
+<div class="section">
+    <h2>文档列表</h2>
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>标题</th>
+                    <th>描述</th>
+                    <th>上传者</th>
+                    <th>状态</th>
+                    <th>平均分</th>
+                    <th>评审数</th>
+                    <th>上传时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for doc in documents %}
+                <tr>
+                    <td>{{ doc.id }}</td>
+                    <td><a href="{{ url_for('view_document', doc_id=doc.id) }}">{{ doc.title }}</a></td>
+                    <td>{{ doc.description[:50] }}{% if doc.description|length > 50 %}...{% endif %}</td>
+                    <td>{{ doc.uploader.username }}</td>
+                    <td>
+                        <span class="status-badge status-{{ doc.status }}">
+                            {% if doc.status == 'pending' %}待评审
+                            {% elif doc.status == 'reviewing' %}评审中
+                            {% elif doc.status == 'completed' %}已完成
+                            {% else %}{{ doc.status }}{% endif %}
+                        </span>
+                    </td>
+                    <td>
+                        {% if doc.get_average_score() %}
+                            {{ doc.get_average_score() }}分
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>{{ doc.get_review_count() }}</td>
+                    <td>{{ doc.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>
+                        <a href="{{ url_for('view_document', doc_id=doc.id) }}" class="btn btn-sm btn-info">查看</a>
+                        <button onclick="deleteDocument({{ doc.id }})" class="btn btn-sm btn-danger">删除</button>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="9" class="text-center">暂无文档</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function deleteDocument(docId) {
+    if (!confirm('确定要删除此文档吗？此操作不可恢复。')) {
+        return;
+    }
+    
+    fetch(`/api/document/${docId}/delete`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('文档删除成功');
+            location.reload();
+        } else {
+            alert('删除失败: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('删除失败: ' + error);
+    });
+}
+</script>
+{% endblock %}
+

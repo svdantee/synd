@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}创建用户 - 文档评审系统{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>创建用户</h1>
+</div>
+
+<div class="form-card">
+    <form method="POST">
+        <div class="form-group">
+            <label for="username">用户名 *</label>
+            <input type="text" id="username" name="username" required autofocus>
+        </div>
+        
+        <div class="form-group">
+            <label for="email">邮箱 *</label>
+            <input type="email" id="email" name="email" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="password">密码 *</label>
+            <input type="password" id="password" name="password" required>
+            <small>密码长度至少6位</small>
+        </div>
+        
+        {% if current_user.is_admin() %}
+        <div class="form-group">
+            <label for="role">角色 *</label>
+            <select id="role" name="role" required>
+                <option value="reviewer" selected>评审者</option>
+                <option value="admin">管理员</option>
+            </select>
+        </div>
+        {% else %}
+        <input type="hidden" name="role" value="reviewer">
+        {% endif %}
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">创建用户</button>
+            <a href="{{ url_for('user_management') }}" class="btn btn-secondary">取消</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

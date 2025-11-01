@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}用户管理 - 文档评审系统{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>用户管理</h1>
+    <a href="{{ url_for('register') }}" class="btn btn-primary">创建新用户</a>
+</div>
+
+<div class="section">
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>用户名</th>
+                    <th>邮箱</th>
+                    <th>角色</th>
+                    <th>状态</th>
+                    <th>创建时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.id }}</td>
+                    <td>{{ user.username }}</td>
+                    <td>{{ user.email }}</td>
+                    <td>
+                        <span class="role-badge role-{{ user.role }}">
+                            {% if user.role == 'admin' %}管理员{% else %}评审者{% endif %}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="status-badge {% if user.is_active %}status-active{% else %}status-inactive{% endif %}">
+                            {% if user.is_active %}激活{% else %}禁用{% endif %}
+                        </span>
+                    </td>
+                    <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>
+                        <a href="{{ url_for('edit_user', user_id=user.id) }}" class="btn btn-sm btn-primary">编辑</a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center">暂无用户</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+

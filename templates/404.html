@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block title %}页面未找到 - 文档评审系统{% endblock %}
+
+{% block content %}
+<div class="error-page">
+    <h1>404</h1>
+    <p>抱歉，您访问的页面不存在。</p>
+    <a href="{{ url_for('dashboard') }}" class="btn btn-primary">返回首页</a>
+</div>
+{% endblock %}
+

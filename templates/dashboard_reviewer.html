@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}评审者控制台 - 文档评审系统{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h1>评审者控制台</h1>
+</div>
+
+<div class="section">
+    <h2>待评审文档</h2>
+    {% if pending_docs %}
+    <div class="document-grid">
+        {% for doc in pending_docs %}
+        <div class="document-card">
+            <h3><a href="{{ url_for('view_document', doc_id=doc.id) }}">{{ doc.title }}</a></h3>
+            <p class="doc-description">{{ doc.description[:100] }}{% if doc.description|length > 100 %}...{% endif %}</p>
+            <div class="doc-meta">
+                <span>上传者: {{ doc.uploader.username }}</span>
+                <span>上传时间: {{ doc.created_at.strftime('%Y-%m-%d') }}</span>
+            </div>
+            <div class="doc-actions">
+                <a href="{{ url_for('view_document', doc_id=doc.id) }}" class="btn btn-sm btn-primary">查看详情</a>
+                <a href="{{ url_for('review_document', doc_id=doc.id) }}" class="btn btn-sm btn-success">开始评审</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-center">暂无待评审文档</p>
+    {% endif %}
+</div>
+
+<div class="section">
+    <h2>已评审文档</h2>
+    {% if reviewed_docs %}
+    <div class="document-grid">
+        {% for doc in reviewed_docs %}
+        <div class="document-card">
+            <h3><a href="{{ url_for('view_document', doc_id=doc.id) }}">{{ doc.title }}</a></h3>
+            <p class="doc-description">{{ doc.description[:100] }}{% if doc.description|length > 100 %}...{% endif %}</p>
+            <div class="doc-meta">
+                <span>平均分: {% if doc.get_average_score() %}{{ doc.get_average_score() }}分{% else %}-{% endif %}</span>
+                <span>评审数: {{ doc.get_review_count() }}</span>
+            </div>
+            <div class="doc-actions">
+                <a href="{{ url_for('view_document', doc_id=doc.id) }}" class="btn btn-sm btn-info">查看详情</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-center">暂无已评审文档</p>
+    {% endif %}
+</div>
+{% endblock %}
+

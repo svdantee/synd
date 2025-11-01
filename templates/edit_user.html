@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}编辑用户 - 文档评审系统{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>编辑用户: {{ user.username }}</h1>
+</div>
+
+<div class="form-card">
+    <form method="POST">
+        <div class="form-group">
+            <label>用户名</label>
+            <input type="text" value="{{ user.username }}" disabled>
+            <small>用户名不能修改</small>
+        </div>
+        
+        <div class="form-group">
+            <label for="email">邮箱 *</label>
+            <input type="email" id="email" name="email" value="{{ user.email }}" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="password">新密码</label>
+            <input type="password" id="password" name="password">
+            <small>留空则不修改密码</small>
+        </div>
+        
+        {% if current_user.is_admin() %}
+        <div class="form-group">
+            <label for="role">角色 *</label>
+            <select id="role" name="role" required>
+                <option value="reviewer" {% if user.role == 'reviewer' %}selected{% endif %}>评审者</option>
+                <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>管理员</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label>
+                <input type="checkbox" name="is_active" {% if user.is_active %}checked{% endif %}>
+                账户激活
+            </label>
+        </div>
+        {% endif %}
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">保存更改</button>
+            <a href="{{ url_for('user_management') }}" class="btn btn-secondary">取消</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
