@@ -28,17 +28,10 @@
         <div class="form-group">
             <label for="role">角色 *</label>
             <select id="role" name="role" required>
-                <option value="reviewer" selected>评审者</option>
+                <option value="reviewer">评审者</option>
+                <option value="teacher">教师</option>
                 <option value="admin">管理员</option>
             </select>
-        </div>
-        
-        <div class="form-group">
-            <label>
-                <input type="checkbox" name="is_active" checked>
-                立即激活账户
-            </label>
-            <small>勾选后用户可立即登录，否则需要管理员审批</small>
         </div>
         
         <div class="form-actions">
@@ -47,5 +40,7 @@
         </div>
     </form>
 </div>
+{% endblock %}
+
 {% endblock %}
 

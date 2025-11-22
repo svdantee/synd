@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+
+{% block title %}创建评审活动 - 文档评审系统{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>创建评审活动</h1>
+</div>
+
+<div class="form-card">
+    <form method="POST" id="eventForm">
+        <div class="form-section">
+            <h3>活动基本信息</h3>
+            <div class="form-group">
+                <label for="name">活动名称 *</label>
+                <input type="text" id="name" name="name" required>
+            </div>
+            <div class="form-group">
+                <label for="description">活动说明</label>
+                <textarea id="description" name="description" rows="4"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="start_time">开始时间</label>
+                <input type="datetime-local" id="start_time" name="start_time">
+            </div>
+            <div class="form-group">
+                <label for="end_time">结束时间</label>
+                <input type="datetime-local" id="end_time" name="end_time">
+            </div>
+            <div class="form-group">
+                <label for="upload_deadline">上传截止时间</label>
+                <input type="datetime-local" id="upload_deadline" name="upload_deadline">
+                <small>超过此时间，教师将无法上传或更新作品</small>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3>评分模板设置</h3>
+            <div class="form-group">
+                <label for="template_id">选择评分模板 *</label>
+                <select id="template_id" name="template_id" required>
+                    <option value="">请选择评分模板</option>
+                    {% for tpl in templates %}
+                    <option value="{{ tpl.id }}">{{ tpl.name }}{% if tpl.description %} - {{ tpl.description[:50] }}{% endif %}</option>
+                    {% endfor %}
+                </select>
+                <small>如果还没有评分模板，请先到 <a href="{{ url_for('admin_templates') }}" target="_blank">评分模板管理</a> 创建模板</small>
+            </div>
+            {% if templates %}
+            <div id="template-preview" style="display: none;">
+                <h4>模板维度预览</h4>
+                <div id="dimensions-preview"></div>
+            </div>
+            {% else %}
+            <div class="alert alert-warning">
+                <strong>提示：</strong>当前没有可用的评分模板，请先到 <a href="{{ url_for('admin_templates') }}">评分模板管理</a> 创建模板。
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary" {% if not templates %}disabled{% endif %}>创建活动</button>
+            <a href="javascript:history.back()" class="btn btn-secondary">返回</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 当选择模板时，显示维度预览
+document.getElementById('template_id').addEventListener('change', function() {
+    const templateId = this.value;
+    const previewDiv = document.getElementById('template-preview');
+    const dimensionsDiv = document.getElementById('dimensions-preview');
+    
+    if (templateId) {
+        // 通过AJAX获取模板维度信息
+        fetch(`/api/template/${templateId}/dimensions`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.dimensions && data.dimensions.length > 0) {
+                    let html = '<ul style="list-style: none; padding: 0;">';
+                    data.dimensions.forEach(dim => {
+                        html += `<li style="padding: 0.5rem; margin: 0.25rem 0; background: #f0f0f0; border-radius: 4px;">`;
+                        html += `<strong>${dim.name}</strong>`;
+                        if (dim.weight && dim.weight !== 1.0) {
+                            html += ` <span style="color: #666;">(权重: ${dim.weight})</span>`;
+                        }
+                        html += `</li>`;
+                    });
+                    html += '</ul>';
+                    dimensionsDiv.innerHTML = html;
+                    previewDiv.style.display = 'block';
+                } else {
+                    dimensionsDiv.innerHTML = '<p style="color: #999;">该模板暂无维度配置</p>';
+                    previewDiv.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('获取模板维度失败:', error);
+                previewDiv.style.display = 'none';
+            });
+    } else {
+        previewDiv.style.display = 'none';
+    }
+});
+</script>
+
+<style>
+.form-section {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+}
+
+.form-section h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: #333;
+    font-size: 1.1rem;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 0.5rem;
+}
+
+.form-section h4 {
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    color: #555;
+    font-size: 1rem;
+}
+
+.form-section select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+.form-section small {
+    display: block;
+    margin-top: 0.25rem;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.form-section small a {
+    color: #007bff;
+    text-decoration: underline;
+}
+
+#template-preview {
+    margin-top: 1rem;
+    padding: 1rem;
+    background-color: white;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+}
+
+.alert {
+    padding: 1rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+}
+
+.alert-warning {
+    background-color: #fff3cd;
+    border: 1px solid #ffc107;
+    color: #856404;
+}
+
+.alert-warning a {
+    color: #007bff;
+    text-decoration: underline;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.checkbox-group {
+    margin-top: 1rem;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    padding: 0.75rem 1rem;
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.checkbox-label:hover {
+    background-color: #f8f9fa;
+}
+
+.checkbox-text {
+    font-weight: 500;
+    color: #333;
+    font-size: 1rem;
+}
+
+.checkbox-large {
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    margin: 0;
+    flex-shrink: 0;
+}
+</style>
+{% endblock %}

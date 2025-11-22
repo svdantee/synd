@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}评审结果 - 文档评审系统{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>评审结果</h1>
+</div>
+
+<div class="section">
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>标题</th>
+                    <th>上传教师</th>
+                    <th>模板</th>
+                    <th>评审数</th>
+                    <th>平均分</th>
+                    <th>明细</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for doc in documents %}
+                <tr>
+                    <td>{{ doc.title }}</td>
+                    <td>{{ doc.uploader.username }}</td>
+                    <td>{% if doc.template %}{{ doc.template.name }}{% else %}-{% endif %}</td>
+                    <td>{{ doc.get_review_count() }}</td>
+                    <td>{% if doc.get_average_score() %}{{ doc.get_average_score() }}{% else %}-{% endif %}</td>
+                    <td>
+                        {% if doc.template and doc.reviews %}
+                        <details>
+                            <summary>查看</summary>
+                            <div style="padding-top: .5rem;">
+                                {% for r in doc.reviews %}
+                                    {% if r.status=='completed' %}
+                                    <div class="review-card" style="margin-bottom: .5rem;">
+                                        <div class="review-header">
+                                            <span class="reviewer-name">{{ r.reviewer.username }}</span>
+                                            <span class="review-score">总分: {{ r.score }}</span>
+                                            <span class="review-date">{{ r.updated_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                                        </div>
+                                        <ul>
+                                            {% for det in r.details %}
+                                                <li>{{ det.dimension.name }}: {{ det.score }} {% if det.comment %}（{{ det.comment }}）{% endif %}</li>
+                                            {% endfor %}
+                                        </ul>
+                                        {% if r.comment %}<div>总体评语：{{ r.comment }}</div>{% endif %}
+                                    </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </details>
+                        {% else %}-{% endif %}
+                    </td>
+                </tr>
+            {% else %}
+                <tr><td colspan="6" class="text-center">暂无数据</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}
+
+

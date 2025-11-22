@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}编辑使用说明 - 文档评审系统{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>编辑使用说明</h1>
+</div>
+
+<div class="form-card">
+    <form method="POST">
+        <div class="form-group">
+            <label for="content">内容（支持HTML）</label>
+            <textarea id="content" name="content" rows="16">{% if instruction %}{{ instruction.content }}{% endif %}</textarea>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">保存</button>
+            <a href="{{ url_for('instruction_page') }}" class="btn btn-secondary">查看</a>
+        </div>
+    </form>
+{% endblock %}
+
+

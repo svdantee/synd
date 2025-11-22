@@ -14,16 +14,16 @@
             </div>
             <div class="nav-menu">
                 {% if current_user.is_authenticated %}
-                    <span class="nav-user">欢迎, {{ current_user.username }} ({{ '管理员' if current_user.is_admin() else '评审者' }})</span>
+                    <span class="nav-user">欢迎, {{ current_user.username }} ({{ '管理员' if current_user.is_admin() else ( '教师' if current_user.role=='teacher' else '评审者') }})</span>
                     {% if current_user.is_admin() %}
-                        <a href="{{ url_for('upload') }}" class="nav-link">上传文档</a>
                         <a href="{{ url_for('user_management') }}" class="nav-link">用户管理</a>
-                        <a href="{{ url_for('admin_create_user') }}" class="nav-link">创建用户</a>
+                        <a href="{{ url_for('admin_templates') }}" class="nav-link">评分模板</a>
+                        <a href="{{ url_for('admin_events') }}" class="nav-link">评审活动</a>
                     {% endif %}
+                    <a href="{{ url_for('edit_user', user_id=current_user.id) }}" class="nav-link">个人设置</a>
                     <a href="{{ url_for('logout') }}" class="nav-link">退出</a>
                 {% else %}
                     <a href="{{ url_for('login') }}" class="nav-link">登录</a>
-                    <a href="{{ url_for('register') }}" class="nav-link">注册</a>
                 {% endif %}
             </div>
         </div>
@@ -45,11 +45,81 @@
             {% endwith %}
 
             {% block back_button %}
-            {% if request.path != '/' and request.path != '/login' and request.path != '/register' and request.path != '/dashboard' %}
+            {% if request.path != '/' and request.path != '/login' and request.path != '/register' and request.path != '/dashboard' and request.path != '/complete-profile' %}
             <div class="back-button-container">
-                <button onclick="history.back()" class="btn btn-secondary btn-back" title="返回上一页">
-                    ← 返回上一页
-                </button>
+                {% if current_user.is_authenticated %}
+                    {# 二级页面：返回主页面 #}
+                    {% if request.path == '/users' or request.path == '/admin/templates' or request.path == '/admin/events' %}
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-back" title="返回">
+                        返回
+                    </a>
+                    {# 个人设置（二级页面）：返回主页面 #}
+                    {% elif request.path.startswith('/user/') and '/edit' in request.path and request.path.count('/') == 3 %}
+                        {% set path_parts = request.path.split('/') %}
+                        {% if path_parts|length >= 3 and path_parts[2]|int == current_user.id %}
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-back" title="返回">
+                            返回
+                        </a>
+                        {% else %}
+                        <a href="{{ url_for('user_management') }}" class="btn btn-secondary btn-back" title="返回">
+                            返回
+                        </a>
+                        {% endif %}
+                    {# 三级页面：返回对应的二级页面 #}
+                    {% elif request.path == '/admin/create_user' %}
+                    <a href="{{ url_for('user_management') }}" class="btn btn-secondary btn-back" title="返回">
+                        返回
+                    </a>
+                    {% elif request.path == '/admin/templates/create' or (request.path.startswith('/admin/templates/') and request.path.count('/') == 4 and not request.path.endswith('/delete')) %}
+                    <a href="{{ url_for('admin_templates') }}" class="btn btn-secondary btn-back" title="返回">
+                        返回
+                    </a>
+                    {% elif request.path == '/admin/events/create' or (request.path.startswith('/admin/events/') and request.path.count('/') == 4 and '/edit' in request.path) %}
+                    <a href="{{ url_for('admin_events') }}" class="btn btn-secondary btn-back" title="返回">
+                        返回
+                    </a>
+                    {% elif request.path.startswith('/admin/events/') and request.path.count('/') == 4 and '/documents' in request.path %}
+                    {# 从管理员首页进入的活动文档列表，返回首页；从活动列表进入的，返回活动列表 #}
+                    {% set from_param = request.args.get('from', '') %}
+                    {% if request.args.get('from') == 'dashboard' or (from_param is defined and from_param == 'dashboard') %}
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-back" title="返回">
+                        返回
+                    </a>
+                    {% else %}
+                    <a href="{{ url_for('admin_events') }}" class="btn btn-secondary btn-back" title="返回">
+                        返回
+                    </a>
+                    {% endif %}
+                    {% elif request.path.startswith('/admin/events/') and request.path.count('/') == 4 and '/visibility' in request.path %}
+                    <a href="{{ url_for('admin_events') }}" class="btn btn-secondary btn-back" title="返回">
+                        返回
+                    </a>
+                    {% elif request.path.startswith('/teacher/event/') or request.path.startswith('/reviewer/event/') %}
+                    {# 教师和评审员的活动详情页：返回到活动选择页面（dashboard） #}
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-back" title="返回">
+                        返回
+                    </a>
+                    {% elif request.path.startswith('/document/') %}
+                    {# 文档详情页：使用传递的back_url #}
+                    {% if back_url is defined and back_url %}
+                    <a href="{{ back_url }}" class="btn btn-secondary btn-back" title="返回">
+                        返回
+                    </a>
+                    {% else %}
+                    <a href="javascript:history.back()" class="btn btn-secondary btn-back" title="返回">
+                        返回
+                    </a>
+                    {% endif %}
+                    {% else %}
+                    <a href="javascript:history.back()" class="btn btn-secondary btn-back" title="返回">
+                        返回
+                    </a>
+                    {% endif %}
+                {% else %}
+                <a href="javascript:history.back()" class="btn btn-secondary btn-back" title="返回">
+                    返回
+                </a>
+                {% endif %}
             </div>
             {% endif %}
             {% endblock %}

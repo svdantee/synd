@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}评审活动管理 - 文档评审系统{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>评审活动管理</h1>
+    <a href="{{ url_for('admin_events_create') }}" class="btn btn-primary">新建活动</a>
+</div>
+
+<div class="section">
+    <h2>活动列表</h2>
+    {% if events %}
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+            <tr>
+                <th>名称</th>
+                <th>时间范围</th>
+                <th>状态</th>
+                <th>文档数</th>
+                <th>操作</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for ev in events %}
+            <tr>
+                <td>{{ ev.name }}</td>
+                <td>
+                    {% if ev.start_time %}{{ ev.start_time.strftime('%Y-%m-%d %H:%M') }}{% else %}-{% endif %} ~
+                    {% if ev.end_time %}{{ ev.end_time.strftime('%Y-%m-%d %H:%M') }}{% else %}-{% endif %}
+                </td>
+                <td>{{ '启用' if ev.is_active else '停用' }}</td>
+                <td>{{ ev.documents|length }}</td>
+                <td>
+                    <div style="display: flex; gap: 0.25rem; align-items: center; justify-content: center;">
+                        <a class="btn btn-sm btn-primary" href="{{ url_for('admin_events_edit', event_id=ev.id) }}">编辑</a>
+                        <form method="POST" action="{{ url_for('admin_event_toggle_active', event_id=ev.id) }}" style="display: inline-block; margin: 0;" onsubmit="return confirm('确定要{% if ev.is_active %}停用{% else %}启用{% endif %}活动「{{ ev.name }}」吗？');">
+                            <button type="submit" class="btn btn-sm {% if ev.is_active %}btn-warning{% else %}btn-success{% endif %}">
+                                {% if ev.is_active %}停用{% else %}启用{% endif %}
+                            </button>
+                        </form>
+                        <a class="btn btn-sm btn-info" href="{{ url_for('admin_event_visibility', event_id=ev.id) }}">可见性设置</a>
+                        <button class="btn btn-sm btn-danger" onclick="deleteEvent({{ ev.id }}, '{{ ev.name }}')">删除</button>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <p>暂无活动</p>
+        <a href="{{ url_for('admin_events_create') }}" class="btn btn-primary">创建第一个活动</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function deleteEvent(id, name) {
+    if (!confirm('该操作将删除活动及其所有相关文档与评审数据。确认继续？')) return;
+    const confirmName = prompt('为确认删除，请输入活动名称：');
+    if (confirmName !== name) {
+        alert('活动名称输入不匹配，已取消删除。');
+        return;
+    }
+    const confirmPhrase = prompt('请再输入确认短语：DELETE');
+    if (confirmPhrase !== 'DELETE') {
+        alert('确认短语错误，已取消删除。');
+        return;
+    }
+    const formData = new URLSearchParams();
+    formData.set('confirm_name', confirmName);
+    formData.set('confirm_phrase', confirmPhrase);
+    fetch(`/admin/events/${id}/delete`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: formData.toString()
+    }).then(r=>r.json()).then(res=>{
+        if (res.success) location.reload();
+        else alert(res.message || '删除失败');
+    });
+}
+</script>
+{% endblock %}

@@ -4,30 +4,43 @@
 
 {% block content %}
 <div class="page-header">
-    <h1>上传文档</h1>
+    <h1>{% if existing_doc %}编辑文档{% else %}上传文档{% endif %}</h1>
 </div>
 
 <div class="form-card">
     <form method="POST" enctype="multipart/form-data">
+        {% if existing_doc %}
+        <input type="hidden" name="doc_id" value="{{ existing_doc.id }}">
+        {% endif %}
+        <div class="form-group">
+            <label for="event_id">所属评审活动</label>
+            <select id="event_id" name="event_id">
+                <option value="">未选择</option>
+                {% for ev in events %}
+                <option value="{{ ev.id }}" {% if existing_doc and existing_doc.event_id == ev.id %}selected{% endif %}>{{ ev.name }}</option>
+                {% endfor %}
+            </select>
+            <small>请选择要参与的评审活动（由管理员创建与启用）</small>
+        </div>
         <div class="form-group">
             <label for="title">文档标题 *</label>
-            <input type="text" id="title" name="title" required>
+            <input type="text" id="title" name="title" required value="{% if existing_doc %}{{ existing_doc.title }}{% endif %}">
         </div>
         
         <div class="form-group">
             <label for="description">文档描述</label>
-            <textarea id="description" name="description" rows="4"></textarea>
+            <textarea id="description" name="description" rows="4">{% if existing_doc %}{{ existing_doc.description or '' }}{% endif %}</textarea>
         </div>
         
         <div class="form-group">
-            <label for="file">选择文件 *</label>
-            <input type="file" id="file" name="file" required accept=".pdf,.doc,.docx,.txt,.xlsx,.xls">
-            <small>支持格式: PDF, DOC, DOCX, TXT, XLSX, XLS (最大16MB)</small>
+            <label for="file">选择文件 {% if not existing_doc %}*{% endif %}</label>
+            <input type="file" id="file" name="file" {% if not existing_doc %}required{% endif %} accept=".pdf" style="text-align: center;">
+            <small style="text-align: center; display: block;">仅支持PDF文件 (最大16MB){% if existing_doc %} - 不选择文件则保留原文件{% endif %}</small>
         </div>
         
         <div class="form-actions">
-            <button type="submit" class="btn btn-primary">上传文档</button>
-            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">取消</a>
+            <button type="submit" class="btn btn-primary">{% if existing_doc %}更新文档{% else %}上传文档{% endif %}</button>
+            <a href="javascript:history.back()" class="btn btn-secondary">取消</a>
         </div>
     </form>
 </div>

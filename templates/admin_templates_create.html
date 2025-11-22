@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}创建评分模板 - 文档评审系统{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>创建评分模板</h1>
+</div>
+
+<div class="form-card">
+    <form method="POST" id="templateForm">
+        <div class="form-section">
+            <h3>模板基本信息</h3>
+            <div class="form-group">
+                <label for="name">模板名称 *</label>
+                <input type="text" id="name" name="name" required placeholder="例如：作品评审模板">
+            </div>
+            <div class="form-group">
+                <label for="description">模板描述</label>
+                <textarea id="description" name="description" rows="3" placeholder="模板的说明信息"></textarea>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3>评分维度设置 *</h3>
+            <p class="form-help">请设置评分维度，例如：感情、设计、技巧、能力、细节等，总分100分</p>
+            <div id="dimensions-container">
+                <div class="dimension-item">
+                    <div class="dimension-row">
+                        <div class="form-group-inline">
+                            <label>维度名称 *</label>
+                            <input type="text" name="dimension_name[]" required placeholder="例如：感情">
+                        </div>
+                        <div class="form-group-inline">
+                            <label>权重</label>
+                            <input type="number" name="dimension_weight[]" step="0.1" value="1.0" min="0">
+                        </div>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="removeDimension(this)" style="display: none;">删除</button>
+                    </div>
+                    <div class="form-group">
+                        <label>维度描述</label>
+                        <textarea name="dimension_description[]" rows="2" placeholder="该维度的具体评分标准和说明"></textarea>
+                    </div>
+                </div>
+            </div>
+            <button type="button" class="btn btn-secondary" onclick="addDimension()">添加维度</button>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">创建模板</button>
+            <a href="javascript:history.back()" class="btn btn-secondary">返回</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let dimensionCount = 1;
+
+function addDimension() {
+    dimensionCount++;
+    const container = document.getElementById('dimensions-container');
+    const newItem = document.createElement('div');
+    newItem.className = 'dimension-item';
+    newItem.innerHTML = `
+        <div class="dimension-row">
+            <div class="form-group-inline">
+                <label>维度名称 *</label>
+                <input type="text" name="dimension_name[]" required placeholder="例如：设计">
+            </div>
+            <div class="form-group-inline">
+                <label>权重</label>
+                <input type="number" name="dimension_weight[]" step="0.1" value="1.0" min="0">
+            </div>
+            <button type="button" class="btn btn-danger btn-sm" onclick="removeDimension(this)">删除</button>
+        </div>
+        <div class="form-group">
+            <label>维度描述</label>
+            <textarea name="dimension_description[]" rows="2" placeholder="该维度的具体评分标准和说明"></textarea>
+        </div>
+    `;
+    container.appendChild(newItem);
+    
+    // 显示第一个的删除按钮（如果有多个维度）
+    if (dimensionCount > 1) {
+        const firstRemoveBtn = container.querySelector('.dimension-item:first-child .btn-danger');
+        if (firstRemoveBtn) {
+            firstRemoveBtn.style.display = 'inline-block';
+        }
+    }
+}
+
+function removeDimension(btn) {
+    const container = document.getElementById('dimensions-container');
+    if (container.children.length <= 1) {
+        alert('至少需要保留一个维度');
+        return;
+    }
+    btn.closest('.dimension-item').remove();
+    dimensionCount--;
+    
+    // 如果只剩一个，隐藏删除按钮
+    if (container.children.length === 1) {
+        const firstRemoveBtn = container.querySelector('.dimension-item:first-child .btn-danger');
+        if (firstRemoveBtn) {
+            firstRemoveBtn.style.display = 'none';
+        }
+    }
+}
+</script>
+
+<style>
+.form-section {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+}
+
+.form-section h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: #333;
+    font-size: 1.1rem;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 0.5rem;
+}
+
+.form-help {
+    color: #666;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+.dimension-item {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background-color: white;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+}
+
+.dimension-row {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-end;
+    margin-bottom: 0.5rem;
+}
+
+.form-group-inline {
+    flex: 1;
+}
+
+.form-group-inline label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.form-group-inline input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.btn-sm {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.875rem;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+</style>
+{% endblock %}

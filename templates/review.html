@@ -8,28 +8,42 @@
 </div>
 
 <div class="form-card">
-    {% if review %}
+    {% if review and review.status == 'completed' %}
     <div class="alert alert-info">
-        您已经评审过此文档，可以修改您的评审。
+        已完成的评审无法更改。
     </div>
     {% endif %}
     
     <form method="POST">
-        <div class="form-group">
-            <label for="score">评分 * (0-100分)</label>
-            <input type="number" id="score" name="score" min="0" max="100" step="0.1" 
-                   value="{% if review %}{{ review.score }}{% endif %}" required>
-            <small>请输入0-100之间的分数</small>
-        </div>
+        {% if dimensions and dimensions|length > 0 %}
+            {% for dim in dimensions|sort(attribute='order_index') %}
+            <div class="form-group">
+                <label>维度：{{ dim.name }} {% if dim.weight %}<small>(权重 {{ '%.2f' % dim.weight }})</small>{% endif %}</label>
+                <input type="number" name="dim_{{ dim.id }}_score" min="0" max="100" step="0.1"
+                       value="{% if review and review.details %}{% for d in review.details %}{% if d.dimension_id==dim.id %}{{ d.score }}{% endif %}{% endfor %}{% endif %}" required>
+                {% if dim.description %}
+                <small>{{ dim.description }}</small>
+                {% endif %}
+            </div>
+            <div class="form-group">
+                <label>评语（{{ dim.name }}）</label>
+                <textarea name="dim_{{ dim.id }}_comment" rows="3">{% if review and review.details %}{% for d in review.details %}{% if d.dimension_id==dim.id %}{{ d.comment }}{% endif %}{% endfor %}{% endif %}</textarea>
+            </div>
+            {% endfor %}
+        {% else %}
+        <div class="alert alert-error">未配置评分模板，无法进行评分。</div>
+        {% endif %}
         
         <div class="form-group">
-            <label for="comment">评审意见</label>
-            <textarea id="comment" name="comment" rows="8" 
-                      placeholder="请详细说明评审意见，包括优点、不足、改进建议等...">{% if review %}{{ review.comment }}{% endif %}</textarea>
+            <label for="comment">总体评语</label>
+            <textarea id="comment" name="comment" rows="6"
+                      placeholder="请填写总体评语...">{% if review %}{{ review.comment }}{% endif %}</textarea>
         </div>
         
         <div class="form-actions">
+            {% if not review or review.status != 'completed' %}
             <button type="submit" class="btn btn-primary">提交评审</button>
+            {% endif %}
             <a href="{{ url_for('view_document', doc_id=document.id) }}" class="btn btn-secondary">取消</a>
         </div>
     </form>
@@ -41,7 +55,10 @@
     {% if document.description %}
     <p><strong>描述:</strong> {{ document.description }}</p>
     {% endif %}
-    <p><a href="{{ url_for('download_document', doc_id=document.id) }}" class="btn btn-sm btn-info">下载文档查看</a></p>
+    <p>
+        <a href="{{ url_for('download_document', doc_id=document.id) }}" class="btn btn-sm btn-info">下载PDF</a>
+        <a href="{{ url_for('preview_document', doc_id=document.id) }}" class="btn btn-sm btn-primary" target="_blank">在线预览</a>
+    </p>
 </div>
 {% endblock %}
 

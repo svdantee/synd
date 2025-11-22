@@ -183,6 +183,15 @@ body {
     background-color: #c82333;
 }
 
+.btn-warning {
+    background-color: var(--warning-color);
+    color: #333;
+}
+
+.btn-warning:hover {
+    background-color: #e0a800;
+}
+
 .btn-info {
     background-color: var(--info-color);
     color: white;
@@ -190,6 +199,94 @@ body {
 
 .btn-info:hover {
     background-color: #138496;
+}
+
+/* 表单内的按钮样式：去除边框，紧凑间距，文字可点击 */
+.form-actions .btn,
+.form-card .btn,
+.auth-card .btn {
+    background-color: transparent;
+    border: none;
+    padding: 0.4rem 0.8rem;
+    margin: 0;
+}
+
+.form-actions .btn-primary,
+.form-card .btn-primary,
+.auth-card .btn-primary {
+    color: var(--primary-color);
+}
+
+.form-actions .btn-primary:hover,
+.form-card .btn-primary:hover,
+.auth-card .btn-primary:hover {
+    background-color: rgba(74, 144, 226, 0.1);
+    color: var(--primary-dark);
+}
+
+.form-actions .btn-secondary,
+.form-card .btn-secondary,
+.auth-card .btn-secondary {
+    color: var(--secondary-color);
+}
+
+.form-actions .btn-secondary:hover,
+.form-card .btn-secondary:hover,
+.auth-card .btn-secondary:hover {
+    background-color: rgba(108, 117, 125, 0.1);
+    color: #5a6268;
+}
+
+.form-actions .btn-success,
+.form-card .btn-success,
+.auth-card .btn-success {
+    color: var(--success-color);
+}
+
+.form-actions .btn-success:hover,
+.form-card .btn-success:hover,
+.auth-card .btn-success:hover {
+    background-color: rgba(40, 167, 69, 0.1);
+    color: #218838;
+}
+
+.form-actions .btn-danger,
+.form-card .btn-danger,
+.auth-card .btn-danger {
+    color: var(--danger-color);
+}
+
+.form-actions .btn-danger:hover,
+.form-card .btn-danger:hover,
+.auth-card .btn-danger:hover {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: #c82333;
+}
+
+.form-actions .btn-warning,
+.form-card .btn-warning,
+.auth-card .btn-warning {
+    color: var(--warning-color);
+}
+
+.form-actions .btn-warning:hover,
+.form-card .btn-warning:hover,
+.auth-card .btn-warning:hover {
+    background-color: rgba(255, 193, 7, 0.1);
+    color: #e0a800;
+}
+
+.form-actions .btn-info,
+.form-card .btn-info,
+.auth-card .btn-info {
+    color: var(--info-color);
+}
+
+.form-actions .btn-info:hover,
+.form-card .btn-info:hover,
+.auth-card .btn-info:hover {
+    background-color: rgba(23, 162, 184, 0.1);
+    color: #138496;
 }
 
 .btn-sm {
@@ -208,6 +305,12 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 2rem;
+}
+
+.page-header-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
 }
 
 .page-header h1 {
@@ -302,6 +405,7 @@ body {
 
 .form-group {
     margin-bottom: 1.5rem;
+    text-align: center;
 }
 
 .form-group label {
@@ -309,6 +413,7 @@ body {
     margin-bottom: 0.5rem;
     font-weight: 500;
     color: var(--dark-text);
+    text-align: center;
 }
 
 .form-group input,
@@ -320,6 +425,7 @@ body {
     border-radius: 4px;
     font-size: 1rem;
     font-family: inherit;
+    text-align: center;
 }
 
 .form-group input:focus,
@@ -335,12 +441,26 @@ body {
     margin-top: 0.25rem;
     color: var(--secondary-color);
     font-size: 0.875rem;
+    text-align: center;
 }
 
 .form-actions {
     display: flex;
-    gap: 1rem;
+    gap: 0.5rem;
     margin-top: 2rem;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 确保表单按钮文字区域可点击 */
+.form-actions .btn,
+.form-card .btn,
+.auth-card .btn {
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
 }
 
 /* 表格 */
@@ -359,6 +479,7 @@ body {
 
 .table-container {
     overflow-x: auto;
+    text-align: center;
 }
 
 .data-table {
@@ -373,17 +494,72 @@ body {
 .data-table th,
 .data-table td {
     padding: 0.75rem;
-    text-align: left;
+    text-align: center;
     border-bottom: 1px solid var(--border-color);
 }
 
 .data-table th {
     font-weight: 600;
     color: var(--dark-text);
+    text-align: center;
 }
 
 .data-table tbody tr:hover {
     background-color: var(--light-bg);
+}
+
+/* 表格操作列中的按钮：去除背景、边框和字体颜色 */
+.data-table td .btn,
+.data-table td button.btn {
+    background-color: transparent !important;
+    border: none !important;
+    color: inherit !important;
+    padding: 0.25rem 0.5rem;
+    margin: 0;
+    margin-right: 0.25rem;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.data-table td .btn:last-child,
+.data-table td button.btn:last-child {
+    margin-right: 0;
+}
+
+.data-table td .btn:hover,
+.data-table td button.btn:hover {
+    background-color: transparent !important;
+    border: none !important;
+    opacity: 0.7;
+    text-decoration: none;
+}
+
+/* 操作列中的按钮容器：缩小间距并居中 */
+.data-table td > div[style*="gap"],
+.data-table td > div[style*="flex"] {
+    gap: 0.25rem !important;
+    justify-content: center !important;
+}
+
+/* 确保操作列中的所有按钮容器居中 */
+.data-table td > div {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 0.25rem;
+}
+
+/* 操作列中的表单也要居中 */
+.data-table td > form {
+    display: inline-block;
+    margin: 0;
+}
+
+/* 操作列中直接放置的按钮和链接也要居中 */
+.data-table td > .btn,
+.data-table td > button,
+.data-table td > a.btn {
+    margin: 0 0.125rem;
 }
 
 .text-center {
@@ -430,16 +606,20 @@ body {
     border-radius: 12px;
     font-size: 0.875rem;
     font-weight: 500;
+    background-color: transparent;
+    color: var(--dark-text);
 }
 
 .role-admin {
-    background-color: #cfe2ff;
-    color: #084298;
+    /* 移除背景色，统一样式 */
 }
 
 .role-reviewer {
-    background-color: #d1e7dd;
-    color: #0f5132;
+    /* 移除背景色，统一样式 */
+}
+
+.role-teacher {
+    /* 统一样式 */
 }
 
 /* 文档卡片 */

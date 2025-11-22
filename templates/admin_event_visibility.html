@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block title %}活动可见性设置 - 文档评审系统{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>活动可见性设置：{{ event.name }}</h1>
+</div>
+
+<div class="form-card" style="max-width: 1500px;">
+    <form method="GET" action="{{ url_for('admin_event_visibility', event_id=event.id) }}" style="margin-bottom: 1.5rem;">
+        <div class="form-group" style="display: flex; gap: 0.5rem; align-items: end;">
+            <div style="flex: 1;">
+                <input type="text" id="search" name="search" value="{{ search }}" placeholder="输入用户名进行模糊查询" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            <div style="width: 150px;">
+                <select id="filter_role" name="filter_role" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="">全部角色</option>
+                    <option value="teacher" {% if filter_role == 'teacher' %}selected{% endif %}>教师</option>
+                    <option value="reviewer" {% if filter_role == 'reviewer' %}selected{% endif %}>评审者</option>
+                </select>
+            </div>
+            <div>
+                <button type="submit" class="btn btn-primary">搜索</button>
+                <a href="{{ url_for('admin_event_visibility', event_id=event.id) }}" class="btn btn-secondary">重置</a>
+            </div>
+        </div>
+    </form>
+
+    <form method="POST" id="visibilityForm">
+        <input type="hidden" name="action" value="batch_update">
+        
+        <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem; align-items: center;">
+            <span>批量操作：</span>
+            <button type="button" class="btn btn-sm btn-success" onclick="batchSetVisible()">批量设为可见</button>
+            <button type="button" class="btn btn-sm btn-warning" onclick="batchSetInvisible()">批量设为不可见</button>
+        </div>
+
+        <div class="table-container" style="width: 100%;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">
+                            <input type="checkbox" id="selectAllCheckbox" onchange="toggleAll(this)">
+                        </th>
+                        <th>用户名</th>
+                        <th>角色</th>
+                        <th>邮箱</th>
+                        <th>手机号</th>
+                        <th style="cursor: pointer;" title="点击切换可见性">是否可见</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if users %}
+                        {% for user in users %}
+                        <tr>
+                            <td>
+                                <input type="checkbox" name="user_ids" value="{{ user.id }}" class="user-checkbox">
+                            </td>
+                            <td>{{ user.username }}</td>
+                            <td>
+                                {% if user.role == 'teacher' %}
+                                    <span class="role-badge role-teacher">教师</span>
+                                {% else %}
+                                    <span class="role-badge role-reviewer">评审者</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ user.email or '-' }}</td>
+                            <td>{{ user.phone or '-' }}</td>
+                            <td style="cursor: pointer;" onclick="toggleVisibility({{ user.id }}, {{ 'true' if user.id in selected_user_ids else 'false' }})">
+                                {% if user.id in selected_user_ids %}
+                                    <span style="color: green; font-weight: bold;">可见</span>
+                                {% else %}
+                                    <span style="color: #999;">不可见</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 2rem;">
+                                {% if search or filter_role %}
+                                    <p>未找到匹配的用户</p>
+                                {% else %}
+                                    <p>暂无教师或评审员用户</p>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 分页 -->
+        {% if pagination.pages > 1 %}
+        <div style="margin-top: 1.5rem; display: flex; justify-content: center; align-items: center; gap: 0.5rem;">
+            {% if pagination.has_prev %}
+                <a href="{{ url_for('admin_event_visibility', event_id=event.id, page=pagination.prev_num, search=search, filter_role=filter_role) }}" class="btn btn-sm btn-secondary">上一页</a>
+            {% else %}
+                <span class="btn btn-sm btn-secondary" style="opacity: 0.5; cursor: not-allowed;">上一页</span>
+            {% endif %}
+            
+            <span style="padding: 0 1rem;">
+                第 {{ pagination.page }} / {{ pagination.pages }} 页，共 {{ pagination.total }} 条
+            </span>
+            
+            {% if pagination.has_next %}
+                <a href="{{ url_for('admin_event_visibility', event_id=event.id, page=pagination.next_num, search=search, filter_role=filter_role) }}" class="btn btn-sm btn-secondary">下一页</a>
+            {% else %}
+                <span class="btn btn-sm btn-secondary" style="opacity: 0.5; cursor: not-allowed;">下一页</span>
+            {% endif %}
+        </div>
+        {% endif %}
+    </form>
+</div>
+
+<script>
+function toggleAll(checkbox) {
+    const checkboxes = document.querySelectorAll('.user-checkbox');
+    checkboxes.forEach(cb => cb.checked = checkbox.checked);
+}
+
+function toggleVisibility(userId, isVisible) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.style.display = 'none';
+    
+    const userIdInput = document.createElement('input');
+    userIdInput.type = 'hidden';
+    userIdInput.name = 'user_id';
+    userIdInput.value = userId;
+    form.appendChild(userIdInput);
+    
+    document.body.appendChild(form);
+    form.submit();
+}
+
+function batchSetVisible() {
+    const checked = document.querySelectorAll('.user-checkbox:checked');
+    if (checked.length === 0) {
+        alert('请至少选择一个用户');
+        return;
+    }
+    if (confirm(`确定要将选中的 ${checked.length} 个用户设为可见吗？`)) {
+        const form = document.getElementById('visibilityForm');
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'visibility';
+        input.value = 'visible';
+        form.appendChild(input);
+        form.submit();
+    }
+}
+
+function batchSetInvisible() {
+    const checked = document.querySelectorAll('.user-checkbox:checked');
+    if (checked.length === 0) {
+        alert('请至少选择一个用户');
+        return;
+    }
+    if (confirm(`确定要将选中的 ${checked.length} 个用户设为不可见吗？`)) {
+        const form = document.getElementById('visibilityForm');
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'visibility';
+        input.value = 'invisible';
+        form.appendChild(input);
+        form.submit();
+    }
+}
+
+// 监听单个复选框变化，更新全选状态
+document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = document.querySelectorAll('.user-checkbox');
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    
+    if (checkboxes.length > 0) {
+        checkboxes.forEach(cb => {
+            cb.addEventListener('change', function() {
+                const allChecked = Array.from(checkboxes).every(c => c.checked);
+                const noneChecked = Array.from(checkboxes).every(c => !c.checked);
+                selectAllCheckbox.checked = allChecked;
+                selectAllCheckbox.indeterminate = !allChecked && !noneChecked;
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

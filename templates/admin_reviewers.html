@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}评审员管理 - 文档评审系统{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>评审员管理</h1>
+</div>
+
+<div class="form-card" style="margin-bottom: 2rem;">
+    <h3>批量导入评审员</h3>
+    <form method="POST" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="csv">CSV文件（username,email,password）</label>
+            <input type="file" id="csv" name="csv" accept=".csv" required>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">导入</button>
+        </div>
+    </form>
+</div>
+
+<div class="section" style="margin-bottom: 2rem;">
+    <h2>评审员列表</h2>
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>用户名</th>
+                    <th>邮箱</th>
+                    <th>状态</th>
+                    <th>创建时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in reviewers %}
+                <tr>
+                    <td>{{ r.username }}</td>
+                    <td>{{ r.email }}</td>
+                    <td><span class="status-badge {% if r.is_active %}status-active{% else %}status-inactive{% endif %}">
+                        {% if r.is_active %}激活{% else %}禁用{% endif %}
+                    </span></td>
+                    <td>{{ r.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>
+                        <button class="btn btn-sm btn-info" onclick="toggleReviewer({{ r.id }}, {{ 'false' if r.is_active else 'true' }})">
+                            {% if r.is_active %}禁用{% else %}启用{% endif %}
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteReviewer({{ r.id }})">删除</button>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-center">暂无评审员</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="section">
+    <h2>评审员 - 教师映射</h2>
+    <form onsubmit="return mapReviewerTeacher(event)">
+        <div class="form-group">
+            <label>评审员</label>
+            <select id="reviewer_id" required>
+                {% for r in reviewers %}<option value="{{ r.id }}">{{ r.username }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>教师</label>
+            <select id="teacher_id" required>
+                {% for t in teachers %}<option value="{{ t.id }}">{{ t.username }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">建立映射</button>
+        </div>
+    </form>
+    <div class="table-container" style="margin-top: 1rem;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>评审员</th>
+                    <th>教师</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in mappings %}
+                <tr>
+                    <td>{{ m.reviewer_user.username }}</td>
+                    <td>{{ m.teacher_user.username }}</td>
+                    <td><button class="btn btn-sm btn-danger" onclick="deleteMap({{ m.id }})">删除</button></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="3" class="text-center">暂无映射</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleReviewer(id, enable) {
+    const action = enable ? 'enable' : 'disable';
+    fetch(`/admin/reviewers/${id}/${action}`, { method:'POST' })
+        .then(r=>r.json()).then(res=>{
+            if(res.success) location.reload();
+            else alert('操作失败');
+        });
+}
+function deleteReviewer(id) {
+    if(!confirm('确定删除该评审员？')) return;
+    fetch(`/admin/reviewers/${id}/delete`, { method:'POST' })
+        .then(r=>r.json()).then(res=>{
+            if(res.success) location.reload();
+            else alert('删除失败');
+        });
+}
+function mapReviewerTeacher(e) {
+    e.preventDefault();
+    const reviewer_id = document.getElementById('reviewer_id').value;
+    const teacher_id = document.getElementById('teacher_id').value;
+    fetch('/admin/reviewer_map', {
+        method:'POST',
+        headers: {'Content-Type':'application/x-www-form-urlencoded'},
+        body:`reviewer_id=${encodeURIComponent(reviewer_id)}&teacher_id=${encodeURIComponent(teacher_id)}`
+    }).then(r=>r.json()).then(res=>{
+        if(res.success) location.reload();
+        else alert('创建映射失败');
+    });
+    return false;
+}
+function deleteMap(id) {
+    if(!confirm('确定删除该映射？')) return;
+    fetch(`/admin/reviewer_map/${id}/delete`, { method:'POST' })
+        .then(r=>r.json()).then(res=>{
+            if(res.success) location.reload();
+            else alert('删除失败');
+        });
+}
+</script>
+{% endblock %}
+
+

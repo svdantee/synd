@@ -1,104 +1,578 @@
 {% extends "base.html" %}
 
-{% block title %}{{ document.title }} - 文档评审系统{% endblock %}
+{% block title %}{% if current_user.role == 'teacher' %}文档详情{% else %}{{ document.title }} - 文档评审系统{% endif %}{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <h1>{{ document.title }}</h1>
-    <div class="header-actions">
-        <a href="{{ url_for('download_document', doc_id=document.id) }}" class="btn btn-primary">下载文档</a>
-        {% if not current_user.is_admin() and not user_review %}
-        <a href="{{ url_for('review_document', doc_id=document.id) }}" class="btn btn-success">开始评审</a>
-        {% endif %}
-    </div>
-</div>
-
-<div class="document-info">
-    <div class="info-grid">
-        <div class="info-item">
-            <label>文档ID:</label>
-            <span>{{ document.id }}</span>
-        </div>
-        <div class="info-item">
-            <label>上传者:</label>
-            <span>{{ document.uploader.username }}</span>
-        </div>
-        <div class="info-item">
-            <label>状态:</label>
-            <span class="status-badge status-{{ document.status }}">
-                {% if document.status == 'pending' %}待评审
-                {% elif document.status == 'reviewing' %}评审中
-                {% elif document.status == 'completed' %}已完成
-                {% else %}{{ document.status }}{% endif %}
-            </span>
-        </div>
-        <div class="info-item">
-            <label>上传时间:</label>
-            <span>{{ document.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</span>
-        </div>
-        <div class="info-item">
-            <label>平均分:</label>
-            <span>{% if average_score %}{{ average_score }}分{% else %}暂无评分{% endif %}</span>
-        </div>
-        <div class="info-item">
-            <label>评审数量:</label>
-            <span>{{ document.get_review_count() }}</span>
-        </div>
-    </div>
-    
-    {% if document.description %}
-    <div class="description-section">
-        <h3>描述</h3>
-        <p>{{ document.description }}</p>
-    </div>
-    {% endif %}
-</div>
-
-<div class="section">
-    <h2>评审列表</h2>
-    {% if reviews %}
-    <div class="reviews-list">
-        {% for review in reviews %}
-        <div class="review-card">
-            <div class="review-header">
-                <span class="reviewer-name">{{ review.reviewer.username }}</span>
-                <span class="review-score">评分: {{ review.score }}分</span>
-                <span class="review-date">{{ review.updated_at.strftime('%Y-%m-%d %H:%M') }}</span>
+<div class="document-detail-layout">
+    <!-- 左侧：文档预览（占2/3） -->
+    <div class="document-preview-panel">
+        <div class="preview-container">
+            {% if document.filename.lower().endswith('.pdf') %}
+            <div id="pdf-viewer-container">
+                <div id="pdf-canvas-wrapper">
+                    <canvas id="pdf-canvas"></canvas>
+                </div>
+                <div class="pdf-controls">
+                    <button id="prev-page" class="btn btn-sm btn-secondary">上一页</button>
+                    <span id="page-info">1 / 1</span>
+                    <button id="next-page" class="btn btn-sm btn-secondary">下一页</button>
+                </div>
             </div>
-            {% if review.comment %}
-            <div class="review-comment">
-                <strong>评审意见:</strong>
-                <p>{{ review.comment }}</p>
+            {% else %}
+            <div class="preview-placeholder">
+                <p>该文件类型不支持在线预览</p>
             </div>
             {% endif %}
         </div>
-        {% endfor %}
     </div>
-    {% else %}
-    <p class="text-center">暂无评审记录</p>
-    {% endif %}
-</div>
 
-{% if user_review and not current_user.is_admin() %}
-<div class="section">
-    <h2>我的评审</h2>
-    <div class="review-card highlight">
-        <div class="review-header">
-            <span class="reviewer-name">我的评审</span>
-            <span class="review-score">评分: {{ user_review.score }}分</span>
-            <span class="review-date">{{ user_review.updated_at.strftime('%Y-%m-%d %H:%M') }}</span>
-        </div>
-        {% if user_review.comment %}
-        <div class="review-comment">
-            <strong>评审意见:</strong>
-            <p>{{ user_review.comment }}</p>
-        </div>
+    <!-- 右侧：评分结果（占1/3） -->
+    <div class="document-info-panel">
+        {% if current_user.role == 'reviewer' %}
+            {% if user_review %}
+                {# 已评审：显示评分结果，可编辑 #}
+                <div id="score-view-mode" {% if action == 'review' %}style="display: none;"{% endif %}>
+                    <div class="score-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h2>评分结果</h2>
+                        {% if event_status == 'active' %}
+                        <button id="edit-score-btn" class="btn btn-primary" onclick="toggleEditMode()">编辑</button>
+                        {% endif %}
+                    </div>
+                    
+                    {% if dimensions %}
+                    <div class="score-list">
+                        {% for dim in dimensions|sort(attribute='order_index') %}
+                        <div class="score-item" style="margin-bottom: 1.5rem; padding: 1rem; background: #f9f9f9; border-radius: 4px;">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
+                                <div>
+                                    <h4 style="margin: 0;">{{ dim.name }}</h4>
+                                    {% if dim.weight %}
+                                    <small style="color: #666;">权重：{{ '%.2f' % dim.weight }}</small>
+                                    {% endif %}
+                                </div>
+                                <span class="score-value" style="font-size: 1.2rem; font-weight: bold; color: var(--primary-color);">
+                                    {% if user_review_details.get(dim.id) %}
+                                        {{ '%.1f' % user_review_details[dim.id].score }}分
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </span>
+                            </div>
+                            {% if dim.description %}
+                            <p style="margin: 0.5rem 0; color: #666; font-size: 0.9rem; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; word-break: break-word; line-height: 1.5; max-width: 100%; width: 100%; box-sizing: border-box;">{{ dim.description }}</p>
+                            {% endif %}
+                            {% if user_review_details.get(dim.id) and user_review_details[dim.id].comment %}
+                            <div style="margin-top: 0.5rem; padding: 0.5rem; background: white; border-radius: 4px;">
+                                <small style="color: #666;">评语：</small>
+                                <p style="margin: 0.25rem 0 0 0; color: #333;">{{ user_review_details[dim.id].comment }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    {% if user_review.comment %}
+                    <div style="margin-top: 1.5rem; padding: 1rem; background: #f9f9f9; border-radius: 4px;">
+                        <h4 style="margin: 0 0 0.5rem 0;">总体评语</h4>
+                        <p style="margin: 0; color: #333;">{{ user_review.comment }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    <div style="margin-top: 1.5rem; padding: 1rem; background: #e7f3ff; border-radius: 4px; text-align: center;">
+                        <strong style="font-size: 1.2rem;">总分：{{ '%.2f' % user_review.score if user_review.score else '-' }}分</strong>
+                    </div>
+                    {% else %}
+                    <p>该文档未设置评分模板</p>
+                    {% endif %}
+                </div>
+            {% endif %}
+            
+            {# 编辑模式（已评审或未评审都可以编辑） #}
+            <div id="score-edit-mode" {% if action != 'review' and user_review %}style="display: none;"{% endif %}>
+                <form method="POST" id="score-edit-form">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h2>{% if user_review %}编辑评分{% else %}评审文档{% endif %}</h2>
+                        {% if user_review %}
+                        <button type="button" class="btn btn-secondary" onclick="cancelEdit()">取消</button>
+                        {% endif %}
+                    </div>
+                    
+                    {% if dimensions %}
+                    {% for dim in dimensions|sort(attribute='order_index') %}
+                    <div class="form-group" style="margin-bottom: 1.5rem;">
+                        <label for="dim_{{ dim.id }}_score">
+                            {{ dim.name }} *
+                            {% if dim.weight %}
+                            <small style="color: #666;">(权重：{{ '%.2f' % dim.weight }})</small>
+                            {% endif %}
+                        </label>
+                        <input type="number" id="dim_{{ dim.id }}_score" name="dim_{{ dim.id }}_score" 
+                               min="0" max="100" step="0.1" 
+                               value="{% if user_review_details.get(dim.id) %}{{ '%.1f' % user_review_details[dim.id].score }}{% else %}0{% endif %}" 
+                               required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                        {% if dim.description %}
+                        <small style="display: block; margin-top: 0.25rem; color: #666; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; word-break: break-word; line-height: 1.5; max-width: 100%; width: 100%; box-sizing: border-box;">{{ dim.description }}</small>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">保存</button>
+                        {% if user_review %}
+                        <button type="button" class="btn btn-secondary" onclick="cancelEdit()">取消</button>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <p>该文档未设置评分模板</p>
+                    {% endif %}
+                </form>
+            </div>
+        {% elif current_user.role == 'teacher' or current_user.is_admin() %}
+            {# 教师或管理员查看：显示文档信息 #}
+            <div class="document-info" style="text-align: left;">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <label>上传者:</label>
+                        <span>{{ document.uploader.username }}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>作品名称:</label>
+                        <span>{{ document.title }}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>上传时间:</label>
+                        <span>{{ document.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>评审状态:</label>
+                        <span class="status-badge status-{{ document.status }}" style="background-color: transparent; text-align: left;">
+                            {% if document.status == 'pending' %}待评审
+                            {% elif document.status == 'reviewing' %}已评审
+                            {% elif document.status == 'completed' %}已完成
+                            {% else %}{{ document.status }}{% endif %}
+                        </span>
+                    </div>
+                    {% if document.get_average_score() %}
+                    <div class="info-item">
+                        <label>最终得分:</label>
+                        <span style="font-size: 1.1rem; font-weight: bold; color: var(--primary-color);">{{ '%.2f' % document.get_average_score() }}分</span>
+                    </div>
+                    {% endif %}
+                    {% if current_user.is_admin() and dimensions %}
+                    {# 管理员额外显示详细的小分，显示在同一个模块里 #}
+                    {% set dim_averages = document.get_dimension_averages() %}
+                    {% for dim in dimensions|sort(attribute='order_index') %}
+                    <div class="info-item">
+                        <label>{{ dim.name }}:</label>
+                        <span style="font-size: 1rem; font-weight: 500; color: var(--primary-color);">
+                            {% if dim_averages.get(dim.id) %}
+                                {{ dim_averages.get(dim.id) }}分
+                            {% else %}
+                                -
+                            {% endif %}
+                        </span>
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                </div>
+                
+                {% if document.description %}
+                <div class="description-section" style="margin-top: 1.5rem;">
+                    <h3>作品描述</h3>
+                    <p>{{ document.description }}</p>
+                </div>
+                {% endif %}
+            </div>
+        {% else %}
+            <div class="document-info">
+                <p>您尚未对此文档进行评审</p>
+            </div>
         {% endif %}
-        <div class="review-actions">
-            <a href="{{ url_for('review_document', doc_id=document.id) }}" class="btn btn-sm btn-primary">修改评审</a>
-        </div>
     </div>
 </div>
-{% endif %}
 {% endblock %}
 
+{% block scripts %}
+<!-- 使用 CDN 引入 PDF.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+.document-detail-layout {
+    display: grid;
+    grid-template-columns: 3fr 1fr;
+    gap: 2rem;
+    margin-top: 1.5rem;
+}
+
+.document-preview-panel {
+    position: sticky;
+    top: 2rem;
+    height: calc(100vh - 4rem);
+    min-height: 600px;
+}
+
+.preview-container {
+    width: 100%;
+    height: 100%;
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+}
+
+#pdf-viewer-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: #525252;
+}
+
+#pdf-canvas-wrapper {
+    flex: 1;
+    overflow: auto;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 1rem;
+}
+
+#pdf-canvas {
+    max-width: 100%;
+    height: auto;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    background: white;
+}
+
+.pdf-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: white;
+    border-top: 1px solid #ddd;
+}
+
+.pdf-controls .btn {
+    min-width: 80px;
+}
+
+#page-info {
+    font-weight: 500;
+    color: var(--dark-text);
+    min-width: 80px;
+    text-align: center;
+}
+
+.preview-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #666;
+    font-size: 1.1rem;
+}
+
+.document-info-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    text-align: left;
+}
+
+.info-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    text-align: left;
+}
+
+.info-item label {
+    font-weight: 500;
+    color: #666;
+    min-width: 100px;
+    text-align: left;
+    flex-shrink: 0;
+}
+
+.info-item span {
+    color: #333;
+    text-align: left;
+    flex: 1;
+}
+
+.info-item .status-badge {
+    text-align: left;
+    display: inline-block;
+    margin: 0;
+    padding: 0;
+}
+
+.description-section {
+    text-align: left;
+}
+
+.description-section h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+    color: #333;
+    text-align: left;
+}
+
+.description-section p {
+    margin: 0;
+    color: #666;
+    line-height: 1.6;
+    text-align: left;
+}
+
+.score-item {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.score-item p,
+.score-item small {
+    max-width: 100%;
+    width: 100%;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+}
+
+.form-group small {
+    max-width: 100%;
+    width: 100%;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+}
+
+@media (max-width: 1024px) {
+    .document-detail-layout {
+        grid-template-columns: 1fr;
+    }
+    
+    .document-preview-panel {
+        position: relative;
+        top: 0;
+        height: 600px;
+    }
+}
+</style>
+
+<script>
+function toggleEditMode() {
+    document.getElementById('score-view-mode').style.display = 'none';
+    document.getElementById('score-edit-mode').style.display = 'block';
+}
+
+function cancelEdit() {
+    document.getElementById('score-view-mode').style.display = 'block';
+    document.getElementById('score-edit-mode').style.display = 'none';
+}
+
+// 如果action=review，自动进入编辑模式
+{% if action == 'review' %}
+document.addEventListener('DOMContentLoaded', function() {
+    toggleEditMode();
+});
+{% endif %}
+
+// 禁用右键菜单、快捷键和文本选择（在预览区域）
+(function() {
+    var previewContainer = document.getElementById('pdf-viewer-container');
+    if (previewContainer) {
+        // 禁用右键菜单
+        previewContainer.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            return false;
+        });
+        
+        // 禁用文本选择
+        previewContainer.style.userSelect = 'none';
+        previewContainer.style.webkitUserSelect = 'none';
+        previewContainer.style.mozUserSelect = 'none';
+        previewContainer.style.msUserSelect = 'none';
+        
+        // 禁用拖拽
+        previewContainer.addEventListener('dragstart', function(e) {
+            e.preventDefault();
+            return false;
+        });
+    }
+    
+    // 全局禁用保存和打印快捷键
+    document.addEventListener('keydown', function(e) {
+        // 禁用 Ctrl+S (保存)
+        if (e.ctrlKey && e.key === 's') {
+            e.preventDefault();
+            return false;
+        }
+        // 禁用 Ctrl+P (打印)
+        if (e.ctrlKey && e.key === 'p') {
+            e.preventDefault();
+            return false;
+        }
+        // 禁用 Ctrl+Shift+I (开发者工具)
+        if (e.ctrlKey && e.shiftKey && e.key === 'I') {
+            e.preventDefault();
+            return false;
+        }
+        // 禁用 F12 (开发者工具)
+        if (e.key === 'F12') {
+            e.preventDefault();
+            return false;
+        }
+    });
+})();
+
+// PDF.js 渲染
+{% if document.filename.lower().endswith('.pdf') %}
+(function() {
+    // 设置 PDF.js worker
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    
+    var pdfDoc = null;
+    var pageNum = 1;
+    var pageRendering = false;
+    var pageNumPending = null;
+    var scale = 1.5;
+    var canvas = document.getElementById('pdf-canvas');
+    var ctx = canvas.getContext('2d');
+    
+    function renderPage(num) {
+        pageRendering = true;
+        pdfDoc.getPage(num).then(function(page) {
+            var viewport = page.getViewport({scale: scale});
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            
+            var renderContext = {
+                canvasContext: ctx,
+                viewport: viewport
+            };
+            var renderTask = page.render(renderContext);
+            
+            renderTask.promise.then(function() {
+                // 添加水印
+                var username = '{{ current_user.username|e }}';
+                var phone = '{{ current_user.phone or "" }}';
+                var phoneLast4 = phone.length >= 4 ? phone.slice(-4) : '';
+                var watermarkText = username + (phoneLast4 ? phoneLast4 : '');
+                
+                if (watermarkText) {
+                    ctx.save();
+                    ctx.globalAlpha = 0.08; // 降低透明度，使水印更淡
+                    ctx.font = 'bold 24px Arial'; // 降低字号从40px到24px
+                    ctx.fillStyle = '#000000';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    
+                    var angle = -Math.PI / 4; // -45度
+                    var spacingX = 250; // X轴间距
+                    var spacingY = 200; // Y轴间距
+                    
+                    // 计算需要重复的行数和列数
+                    var cols = Math.ceil(canvas.width / spacingX) + 1;
+                    var rows = Math.ceil(canvas.height / spacingY) + 1;
+                    
+                    // 绘制重复的水印
+                    for (var i = 0; i < rows; i++) {
+                        for (var j = 0; j < cols; j++) {
+                            var x = (j - cols/2) * spacingX;
+                            var y = (i - rows/2) * spacingY;
+                            
+                            ctx.save();
+                            ctx.translate(canvas.width/2 + x, canvas.height/2 + y);
+                            ctx.rotate(angle);
+                            ctx.fillText(watermarkText, 0, 0);
+                            ctx.restore();
+                        }
+                    }
+                    
+                    ctx.restore();
+                }
+                
+                pageRendering = false;
+                if (pageNumPending !== null) {
+                    renderPage(pageNumPending);
+                    pageNumPending = null;
+                }
+            });
+            
+            document.getElementById('page-info').textContent = num + ' / ' + pdfDoc.numPages;
+            
+            // 更新按钮状态
+            document.getElementById('prev-page').disabled = (num <= 1);
+            document.getElementById('next-page').disabled = (num >= pdfDoc.numPages);
+        }).catch(function(error) {
+            console.error('渲染页面时出错:', error);
+            document.getElementById('pdf-canvas-wrapper').innerHTML = '<p style="color: #dc3545; padding: 2rem; text-align: center;">PDF加载失败，请刷新页面重试</p>';
+        });
+    }
+    
+    function queueRenderPage(num) {
+        if (pageRendering) {
+            pageNumPending = num;
+        } else {
+            renderPage(num);
+        }
+    }
+    
+    function onPrevPage() {
+        if (pageNum <= 1) return;
+        pageNum--;
+        queueRenderPage(pageNum);
+        // 滚动到顶部
+        document.getElementById('pdf-canvas-wrapper').scrollTop = 0;
+    }
+    
+    function onNextPage() {
+        if (pageNum >= pdfDoc.numPages) return;
+        pageNum++;
+        queueRenderPage(pageNum);
+        // 滚动到顶部
+        document.getElementById('pdf-canvas-wrapper').scrollTop = 0;
+    }
+    
+    // 绑定按钮事件
+    document.getElementById('prev-page').addEventListener('click', onPrevPage);
+    document.getElementById('next-page').addEventListener('click', onNextPage);
+    
+    // 加载PDF
+    var url = '{{ url_for("preview_document", doc_id=document.id) }}';
+    var loadingDiv = document.createElement('div');
+    loadingDiv.style.cssText = 'text-align: center; padding: 2rem; color: #666;';
+    loadingDiv.textContent = '正在加载PDF...';
+    document.getElementById('pdf-canvas-wrapper').appendChild(loadingDiv);
+    
+    pdfjsLib.getDocument({
+        url: url,
+        httpHeaders: {}
+    }).promise.then(function(pdf) {
+        pdfDoc = pdf;
+        document.getElementById('pdf-canvas-wrapper').removeChild(loadingDiv);
+        renderPage(pageNum);
+    }).catch(function(error) {
+        console.error('加载PDF时出错:', error);
+        loadingDiv.textContent = 'PDF加载失败，请刷新页面重试';
+        loadingDiv.style.color = '#dc3545';
+    });
+})();
+{% endif %}
+</script>
+{% endblock %}

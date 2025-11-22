@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}平台设置 - 文档评审系统{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>平台设置</h1>
+</div>
+
+<div class="form-card">
+    <form method="POST">
+        <div class="form-group">
+            <label for="review_start">评审开始时间</label>
+            <input type="datetime-local" id="review_start" name="review_start"
+                   value="{% if settings.review_start %}{{ settings.review_start.strftime('%Y-%m-%dT%H:%M') }}{% endif %}">
+        </div>
+        <div class="form-group">
+            <label for="review_end">评审结束时间</label>
+            <input type="datetime-local" id="review_end" name="review_end"
+                   value="{% if settings.review_end %}{{ settings.review_end.strftime('%Y-%m-%dT%H:%M') }}{% endif %}">
+        </div>
+        <div class="form-group">
+            <label>
+                <input type="checkbox" name="show_teacher_name" {% if settings.show_teacher_name %}checked{% endif %}>
+                评审时显示上传教师姓名
+            </label>
+        </div>
+        <div class="form-group">
+            <label for="active_template_id">启用评分模板</label>
+            <select id="active_template_id" name="active_template_id">
+                <option value="">未选择</option>
+                {% for tpl in templates %}
+                <option value="{{ tpl.id }}" {% if settings.active_template and settings.active_template.id == tpl.id %}selected{% endif %}>
+                    {{ tpl.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">保存设置</button>
+            <a href="javascript:history.back()" class="btn btn-secondary">返回</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+

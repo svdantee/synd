@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}评审者控制台 - 文档评审系统{% endblock %}
+{% block title %}教师控制台 - 文档评审系统{% endblock %}
 
 {% block content %}
 <div class="dashboard-header">
@@ -12,7 +12,7 @@
     {% if events %}
     <div class="event-grid">
         {% for event in events %}
-        <a href="{{ url_for('reviewer_event_detail', event_id=event.id) }}" class="event-card">
+        <a href="{{ url_for('teacher_event_detail', event_id=event.id) }}" class="event-card">
             <div class="event-card-header">
                 <h3>{{ event.name }}</h3>
                 <span class="status-badge {% if event.is_active %}status-active{% else %}status-inactive{% endif %}">
@@ -142,3 +142,4 @@
 }
 </style>
 {% endblock %}
+

@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}{{ event.name }} - 文档评审系统{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>{{ event.name }}</h1>
+    <div class="header-info">
+        <span class="info-badge">
+            {% if event.is_active %}进行中{% else %}已停用{% endif %}
+        </span>
+    </div>
+</div>
+
+<!-- 统计指标 -->
+<div class="stats-grid" style="margin-bottom: 2rem;">
+    <div class="stat-card">
+        <h3>总文件数</h3>
+        <p class="stat-number">{{ stats.total_files }}</p>
+    </div>
+    <div class="stat-card">
+        <h3>已评审文件数</h3>
+        <p class="stat-number">{{ stats.reviewed_files }}</p>
+    </div>
+    <div class="stat-card">
+        <h3>平均总分</h3>
+        <p class="stat-number">
+            {% if stats.avg_total_score is not none %}
+                {{ stats.avg_total_score }}
+            {% else %}
+                -
+            {% endif %}
+        </p>
+    </div>
+    <div class="stat-card">
+        <h3>最高总分</h3>
+        <p class="stat-number">
+            {% if stats.max_total_score is not none %}
+                {{ stats.max_total_score }}
+            {% else %}
+                -
+            {% endif %}
+        </p>
+    </div>
+    <div class="stat-card">
+        <h3>最低总分</h3>
+        <p class="stat-number">
+            {% if stats.min_total_score is not none %}
+                {{ stats.min_total_score }}
+            {% else %}
+                -
+            {% endif %}
+        </p>
+    </div>
+</div>
+
+<div class="section">
+    {% if documents_data %}
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>文档名称</th>
+                    <th>教师名称</th>
+                    {% if documents_data and documents_data[0].dimension_scores %}
+                        {% for dim_score in documents_data[0].dimension_scores %}
+                        <th>{{ dim_score.name }}</th>
+                        {% endfor %}
+                    {% else %}
+                        <th colspan="5" class="text-center">暂无评分维度</th>
+                    {% endif %}
+                    <th>总分</th>
+                    <th>是否已评审</th>
+                    <th>查看详情</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in documents_data %}
+                <tr>
+                    <td>{{ item.document.title }}</td>
+                    <td>{{ item.document.uploader.username }}</td>
+                    {% if item.dimension_scores %}
+                        {% for dim_score in item.dimension_scores %}
+                        <td class="dim-score-cell">
+                            {% if dim_score.average is not none %}
+                                <span class="dim-value">{{ dim_score.average }}分</span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                    {% else %}
+                        <td colspan="5" class="text-muted text-center">暂无评分模板</td>
+                    {% endif %}
+                    <td>
+                        {% set avg_score = item.document.get_average_score() %}
+                        {% if avg_score %}
+                            <strong class="score-highlight">{{ avg_score }}分</strong>
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if item.has_reviews %}
+                            <span class="status-badge status-completed">已评审</span>
+                        {% else %}
+                            <span class="status-badge status-pending">未评审</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% set from_param = request.args.get('from', '') %}
+                        <a href="{{ url_for('view_document', doc_id=item.document.id, back_url=url_for('admin_event_documents', event_id=event.id, from=from_param)) }}" class="btn btn-sm btn-primary">查看详情</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <p>该活动下暂无文档</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.header-info {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.info-badge {
+    padding: 0.5rem 1rem;
+    background-color: #f0f0f0;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.dim-score-cell {
+    text-align: center;
+    padding: 0.5rem;
+}
+
+.dim-value {
+    font-weight: 500;
+    color: #333;
+    font-size: 0.95rem;
+}
+
+.score-highlight {
+    color: #007bff;
+    font-size: 1.1rem;
+}
+
+.text-muted {
+    color: #999;
+    font-style: italic;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: #666;
+}
+
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    display: inline-block;
+}
+
+.status-completed {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-pending {
+    background-color: #fff3cd;
+    color: #856404;
+}
+</style>
+{% endblock %}
+

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}平台使用说明{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>平台使用说明</h1>
+</div>
+<div class="section">
+    {% if instruction and instruction.content %}
+        <div>{{ instruction.content|safe }}</div>
+    {% else %}
+        <p>暂无使用说明。</p>
+    {% endif %}
+</div>
+{% endblock %}
+
+

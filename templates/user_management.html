@@ -17,28 +17,66 @@
 {% endif %}
 
 <div class="section">
+    <!-- 筛选表单 -->
+    <form method="GET" action="{{ url_for('user_management') }}" class="filter-form" style="margin-bottom: 1.5rem; padding: 1rem; background: #f5f5f5; border-radius: 4px;">
+        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 1rem; align-items: end;">
+            <div class="form-group" style="margin: 0;">
+                <label for="search_username" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">用户名搜索</label>
+                <input type="text" id="search_username" name="search_username" value="{{ search_username }}" placeholder="输入用户名进行模糊查询" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            <div class="form-group" style="margin: 0;">
+                <label for="filter_role" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">角色筛选</label>
+                <select id="filter_role" name="filter_role" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="">全部角色</option>
+                    <option value="admin" {% if filter_role == 'admin' %}selected{% endif %}>管理员</option>
+                    <option value="teacher" {% if filter_role == 'teacher' %}selected{% endif %}>教师</option>
+                    <option value="reviewer" {% if filter_role == 'reviewer' %}selected{% endif %}>评审者</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin: 0;">
+                <label for="filter_status" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">状态筛选</label>
+                <select id="filter_status" name="filter_status" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="">全部状态</option>
+                    <option value="active" {% if filter_status == 'active' %}selected{% endif %}>激活</option>
+                    <option value="inactive" {% if filter_status == 'inactive' %}selected{% endif %}>禁用</option>
+                </select>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+                <button type="submit" class="btn btn-primary" style="white-space: nowrap;">筛选</button>
+                <a href="{{ url_for('user_management') }}" class="btn btn-secondary" style="white-space: nowrap;">重置</a>
+            </div>
+        </div>
+        <!-- 隐藏字段保持排序状态 -->
+        <input type="hidden" name="sort_by" value="{{ sort_by }}">
+        <input type="hidden" name="sort_order" value="{{ sort_order }}">
+    </form>
+
     <div class="table-container">
         <table class="data-table">
             <thead>
                 <tr>
-                    <th>ID</th>
                     <th>用户名</th>
                     <th>邮箱</th>
                     <th>角色</th>
                     <th>状态</th>
-                    <th>创建时间</th>
+                    <th>
+                        <a href="{{ url_for('user_management', search_username=search_username, filter_role=filter_role, filter_status=filter_status, sort_by='created_at', sort_order='desc' if sort_by == 'created_at' and sort_order == 'asc' else 'asc') }}" style="text-decoration: none; color: inherit;">
+                            创建时间 {% if sort_by == 'created_at' %}{% if sort_order == 'asc' %}↑{% else %}↓{% endif %}{% endif %}
+                        </a>
+                    </th>
                     <th>操作</th>
                 </tr>
             </thead>
             <tbody>
                 {% for user in users %}
                 <tr>
-                    <td>{{ user.id }}</td>
                     <td>{{ user.username }}</td>
                     <td>{{ user.email }}</td>
                     <td>
                         <span class="role-badge role-{{ user.role }}">
-                            {% if user.role == 'admin' %}管理员{% else %}评审者{% endif %}
+                            {% if user.role == 'admin' %}管理员
+                            {% elif user.role == 'teacher' %}教师
+                            {% else %}评审者{% endif %}
                         </span>
                     </td>
                     <td>
@@ -48,7 +86,23 @@
                     </td>
                     <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
                     <td>
+                        {% if current_user.is_admin() %}
+                        <div style="display: flex; gap: 0.25rem; align-items: center;">
+                            <a href="{{ url_for('edit_user', user_id=user.id) }}" class="btn btn-sm btn-primary">编辑</a>
+                            <form method="POST" action="{{ url_for('admin_user_toggle_active', user_id=user.id) }}" style="display: inline-block;" onsubmit="return confirm('确定要{% if user.is_active %}禁用{% else %}激活{% endif %}用户「{{ user.username }}」吗？');">
+                                <button type="submit" class="btn btn-sm {% if user.is_active %}btn-warning{% else %}btn-success{% endif %}">
+                                    {% if user.is_active %}禁用{% else %}激活{% endif %}
+                                </button>
+                            </form>
+                            {% if user.id != current_user.id %}
+                            <form method="POST" action="{{ url_for('admin_user_delete', user_id=user.id) }}" style="display: inline-block;" onsubmit="return confirm('确定要删除用户「{{ user.username }}」吗？此操作无法恢复，将同时删除该用户的所有相关数据。');">
+                                <button type="submit" class="btn btn-sm btn-danger">删除</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                        {% else %}
                         <a href="{{ url_for('edit_user', user_id=user.id) }}" class="btn btn-sm btn-primary">编辑</a>
+                        {% endif %}
                     </td>
                 </tr>
                 {% else %}

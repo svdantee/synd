@@ -1,23 +1,94 @@
 {% extends "base.html" %}
 
-{% block title %}编辑用户 - 文档评审系统{% endblock %}
+{% block title %}{% if current_user.id == user.id %}个人设置{% else %}编辑用户{% endif %} - 文档评审系统{% endblock %}
 
 {% block content %}
 <div class="page-header">
-    <h1>编辑用户: {{ user.username }}</h1>
+    <h1>{% if current_user.id == user.id %}个人设置{% else %}编辑用户: {{ user.username }}{% endif %}</h1>
+    {% if current_user.id == user.id %}
+    <button id="edit-btn" class="btn btn-primary" onclick="toggleEditMode()">编辑</button>
+    {% endif %}
 </div>
 
 <div class="form-card">
+    {% if current_user.id == user.id %}
+    {# 个人设置：布局不变，点击编辑后输入框变为可编辑 #}
+    <form method="POST" id="edit-form">
+        <div class="info-grid">
+            <div class="info-item">
+                <label for="username">用户名:</label>
+                <input type="text" id="username" name="username" value="{{ user.username }}" required readonly class="info-input">
+            </div>
+            <div class="info-item">
+                <label for="email">邮箱:</label>
+                <input type="email" id="email" name="email" value="{{ user.email or '' }}" required readonly class="info-input">
+            </div>
+            <div class="info-item">
+                <label for="phone">电话:</label>
+                <input type="text" id="phone" name="phone" value="{{ user.phone or '' }}" placeholder="请输入手机号" required readonly class="info-input">
+            </div>
+        </div>
+        <div class="form-actions" id="view-actions" style="margin-top: 1.5rem;">
+            <button type="button" class="btn btn-primary" onclick="showChangePassword()">修改密码</button>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">返回</a>
+        </div>
+        <div class="form-actions" id="edit-actions" style="display: none; margin-top: 1.5rem;">
+            <button type="submit" class="btn btn-primary">保存更改</button>
+            <button type="button" class="btn btn-secondary" onclick="cancelEdit()">取消</button>
+        </div>
+    </form>
+    
+    {# 修改密码弹窗 #}
+    <div id="password-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>修改密码</h3>
+                <button type="button" class="modal-close" onclick="hideChangePassword()">&times;</button>
+            </div>
+            <form method="POST" id="password-change-form">
+                <input type="hidden" name="action" value="change_password">
+                <div class="form-group">
+                    <label for="old_password">旧密码 *</label>
+                    <input type="password" id="old_password" name="old_password" required>
+                    <small>请输入当前密码进行验证</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="new_password">新密码 *</label>
+                    <input type="password" id="new_password" name="new_password" required minlength="6">
+                    <small>密码长度至少6位</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirm_password">确认新密码 *</label>
+                    <input type="password" id="confirm_password" name="confirm_password" required minlength="6">
+                    <small>请再次输入新密码</small>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">保存密码</button>
+                    <button type="button" class="btn btn-secondary" onclick="hideChangePassword()">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% else %}
+    {# 管理员编辑其他用户：直接显示编辑表单 #}
     <form method="POST">
         <div class="form-group">
             <label>用户名</label>
             <input type="text" value="{{ user.username }}" disabled>
-            <small>用户名不能修改</small>
+            <small>只有用户本人可以修改用户名</small>
         </div>
         
         <div class="form-group">
             <label for="email">邮箱 *</label>
-            <input type="email" id="email" name="email" value="{{ user.email }}" required>
+            <input type="email" id="email" name="email" value="{{ user.email or '' }}" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="phone">电话 *</label>
+            <input type="text" id="phone" name="phone" value="{{ user.phone or '' }}" placeholder="请输入手机号" required>
         </div>
         
         <div class="form-group">
@@ -26,28 +97,253 @@
             <small>留空则不修改密码</small>
         </div>
         
-        {% if current_user.is_admin() %}
         <div class="form-group">
             <label for="role">角色 *</label>
             <select id="role" name="role" required>
                 <option value="reviewer" {% if user.role == 'reviewer' %}selected{% endif %}>评审者</option>
+                <option value="teacher" {% if user.role == 'teacher' %}selected{% endif %}>教师</option>
                 <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>管理员</option>
             </select>
         </div>
-        
-        <div class="form-group">
-            <label>
-                <input type="checkbox" name="is_active" {% if user.is_active %}checked{% endif %}>
-                账户激活
-            </label>
-        </div>
-        {% endif %}
         
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">保存更改</button>
             <a href="{{ url_for('user_management') }}" class="btn btn-secondary">取消</a>
         </div>
     </form>
+    {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+{% if current_user.id == user.id %}
+<style>
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+/* 使form-card与page-header对齐，去除最大宽度限制 */
+.form-card {
+    max-width: none;
+    margin: 0;
+    padding: 2rem;
+    width: 100%;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.info-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.75rem 0;
+    background-color: transparent;
+    border-radius: 0;
+}
+
+.info-item label {
+    font-weight: 500;
+    color: #666;
+    min-width: 100px;
+    flex-shrink: 0;
+}
+
+.info-item span {
+    color: #333;
+    flex: 1;
+}
+
+/* 信息输入框样式 */
+.info-input {
+    flex: 1;
+    border: none;
+    background-color: transparent;
+    color: #333;
+    font-size: 1rem;
+    padding: 0;
+    outline: none;
+    text-align: left;
+    font-family: inherit;
+}
+
+.info-input:read-only {
+    cursor: default;
+}
+
+.info-input:not(:read-only) {
+    border: 1px solid #ddd !important;
+    border-radius: 4px;
+    padding: 0.5rem;
+    background-color: #fff !important;
+    cursor: text;
+}
+
+.form-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-start;
+}
+
+/* 弹窗样式 */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 8px;
+    padding: 2rem;
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    color: #666;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.modal-close:hover {
+    color: #333;
+}
+</style>
+<script>
+// 保存原始值
+const originalValues = {
+    username: '{{ user.username|e }}',
+    email: '{{ (user.email or "")|e }}',
+    phone: '{{ (user.phone or "")|e }}'
+};
+
+function toggleEditMode() {
+    const inputs = document.querySelectorAll('.info-input');
+    const viewActions = document.getElementById('view-actions');
+    const editActions = document.getElementById('edit-actions');
+    const passwordForm = document.getElementById('password-form');
+    const editBtn = document.getElementById('edit-btn');
+    
+    if (inputs[0].readOnly) {
+        // 进入编辑模式
+        inputs.forEach(input => {
+            input.readOnly = false;
+            input.style.border = '1px solid #ddd';
+            input.style.backgroundColor = '#fff';
+        });
+        viewActions.style.display = 'none';
+        editActions.style.display = 'flex';
+        passwordForm.style.display = 'none';
+        editBtn.textContent = '取消编辑';
+    } else {
+        // 退出编辑模式
+        inputs.forEach(input => {
+            input.readOnly = true;
+            input.style.border = 'none';
+            input.style.backgroundColor = 'transparent';
+        });
+        viewActions.style.display = 'flex';
+        editActions.style.display = 'none';
+        passwordForm.style.display = 'none';
+        editBtn.textContent = '编辑';
+        // 恢复原始值
+        document.getElementById('username').value = originalValues.username;
+        document.getElementById('email').value = originalValues.email;
+        document.getElementById('phone').value = originalValues.phone;
+    }
+}
+
+function cancelEdit() {
+    toggleEditMode();
+}
+
+function showChangePassword() {
+    const passwordModal = document.getElementById('password-modal');
+    const editBtn = document.getElementById('edit-btn');
+    
+    // 先退出编辑模式（如果正在编辑）
+    const inputs = document.querySelectorAll('.info-input');
+    if (!inputs[0].readOnly) {
+        toggleEditMode();
+    }
+    
+    passwordModal.style.display = 'flex';
+}
+
+function hideChangePassword() {
+    const passwordModal = document.getElementById('password-modal');
+    const viewActions = document.getElementById('view-actions');
+    
+    passwordModal.style.display = 'none';
+    viewActions.style.display = 'flex';
+    // 清空密码表单
+    document.getElementById('password-change-form').reset();
+}
+
+// 密码修改表单验证
+document.addEventListener('DOMContentLoaded', function() {
+    const passwordForm = document.getElementById('password-change-form');
+    if (passwordForm) {
+        passwordForm.addEventListener('submit', function(e) {
+            const newPassword = document.getElementById('new_password').value;
+            const confirmPassword = document.getElementById('confirm_password').value;
+            
+            if (newPassword !== confirmPassword) {
+                e.preventDefault();
+                alert('两次输入的新密码不一致，请重新输入');
+                return false;
+            }
+            
+            if (newPassword.length < 6) {
+                e.preventDefault();
+                alert('新密码长度至少6位');
+                return false;
+            }
+        });
+    }
+});
+</script>
+{% endif %}
 {% endblock %}
 

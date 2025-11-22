@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}编辑评审活动 - 文档评审系统{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>编辑评审活动</h1>
+</div>
+
+<div class="form-card">
+    <form method="POST" id="eventForm">
+        <div class="form-section">
+            <h3>活动基本信息</h3>
+            <div class="form-group">
+                <label for="name">活动名称 *</label>
+                <input type="text" id="name" name="name" required value="{{ event.name }}">
+            </div>
+            <div class="form-group">
+                <label for="description">活动说明</label>
+                <textarea id="description" name="description" rows="4">{{ event.description or '' }}</textarea>
+            </div>
+            <div class="form-group">
+                <label for="start_time">开始时间</label>
+                <input type="datetime-local" id="start_time" name="start_time" 
+                       value="{% if start_time_beijing %}{{ start_time_beijing.strftime('%Y-%m-%dT%H:%M') }}{% endif %}">
+            </div>
+            <div class="form-group">
+                <label for="end_time">结束时间</label>
+                <input type="datetime-local" id="end_time" name="end_time"
+                       value="{% if end_time_beijing %}{{ end_time_beijing.strftime('%Y-%m-%dT%H:%M') }}{% endif %}">
+            </div>
+            <div class="form-group">
+                <label for="upload_deadline">上传截止时间</label>
+                <input type="datetime-local" id="upload_deadline" name="upload_deadline"
+                       value="{% if upload_deadline_beijing %}{{ upload_deadline_beijing.strftime('%Y-%m-%dT%H:%M') }}{% endif %}">
+                <small>超过此时间，教师将无法上传或更新作品</small>
+            </div>
+        </div>
+
+        <input type="hidden" name="template_id" value="{{ event.template_id }}">
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">保存修改</button>
+            <a href="javascript:history.back()" class="btn btn-secondary">返回</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+
+<style>
+.form-section {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+}
+
+.form-section h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: #333;
+    font-size: 1.1rem;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 0.5rem;
+}
+
+.form-section h4 {
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    color: #555;
+    font-size: 1rem;
+}
+
+.form-section select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+.form-section small {
+    display: block;
+    margin-top: 0.25rem;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.form-section small a {
+    color: #007bff;
+    text-decoration: underline;
+}
+
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.checkbox-group {
+    margin-top: 1rem;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    padding: 0.75rem 1rem;
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.checkbox-label:hover {
+    background-color: #f8f9fa;
+}
+
+.checkbox-text {
+    font-weight: 500;
+    color: #333;
+    font-size: 1rem;
+}
+
+.checkbox-large {
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    margin: 0;
+    flex-shrink: 0;
+}
+</style>
+{% endblock %}
+

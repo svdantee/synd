@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}{{ event.name }} - 文档评审系统{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>{{ event.name }}</h1>
+</div>
+
+<!-- 统计指标 -->
+<div class="stats-grid" style="margin-bottom: 2rem;">
+    <div class="stat-card">
+        <h3>待评审</h3>
+        <p class="stat-number">{{ stats.pending_count }}</p>
+    </div>
+    <div class="stat-card">
+        <h3>已评审</h3>
+        <p class="stat-number">{{ stats.reviewed_count }}</p>
+    </div>
+    <div class="stat-card">
+        <h3>总数</h3>
+        <p class="stat-number">{{ stats.total_count }}</p>
+    </div>
+</div>
+
+<div class="section">
+    <h2>文档列表</h2>
+    
+    <!-- 筛选表单 -->
+    <form method="GET" action="{{ url_for('reviewer_event_detail', event_id=event.id) }}" style="margin-bottom: 1.5rem; padding: 1rem; background: #f5f5f5; border-radius: 4px;">
+        <div style="display: grid; grid-template-columns: 2fr 1fr auto; gap: 1rem; align-items: end;">
+            <div class="form-group" style="margin: 0;">
+                <label for="search_title" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">文档名称</label>
+                <input type="text" id="search_title" name="search_title" value="{{ search_title }}" placeholder="输入文档名称进行模糊查询" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            <div class="form-group" style="margin: 0;">
+                <label for="filter_status" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">评审状态</label>
+                <select id="filter_status" name="filter_status" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="">全部状态</option>
+                    <option value="pending" {% if filter_status == 'pending' %}selected{% endif %}>未评审</option>
+                    <option value="reviewed" {% if filter_status == 'reviewed' %}selected{% endif %}>已评审</option>
+                </select>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+                <button type="submit" class="btn btn-primary" style="white-space: nowrap;">搜索</button>
+                <a href="{{ url_for('reviewer_event_detail', event_id=event.id) }}" class="btn btn-secondary" style="white-space: nowrap;">重置</a>
+            </div>
+        </div>
+    </form>
+    
+    {% if documents %}
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>文档名称</th>
+                    <th>上传时间</th>
+                    <th>评审状态</th>
+                    <th>总分</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in documents %}
+                <tr>
+                    <td>{{ item.document.title }}</td>
+                    <td>{{ item.document.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>
+                        {% if item.is_reviewed %}
+                            <span style="color: #22c55e; font-weight: 500;">已评审</span>
+                        {% else %}
+                            <span style="color: #ef4444; font-weight: 500;">未评审</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if item.total_score is not none %}
+                            <strong style="color: var(--primary-color);">{{ '%.2f' % item.total_score }}分</strong>
+                        {% else %}
+                            <span style="color: #999;">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if item.is_reviewed %}
+                            <a href="{{ url_for('view_document', doc_id=item.document.id, back_url=url_for('reviewer_event_detail', event_id=event.id)) }}" class="btn btn-sm btn-primary">查看详情</a>
+                        {% else %}
+                            <a href="{{ url_for('view_document', doc_id=item.document.id, action='review', back_url=url_for('reviewer_event_detail', event_id=event.id)) }}" class="btn btn-sm btn-success">评审</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- 分页 -->
+    {% if total_pages > 1 %}
+    <div style="margin-top: 1.5rem; display: flex; justify-content: center; align-items: center; gap: 0.5rem;">
+        {% if page > 1 %}
+            <a href="{{ url_for('reviewer_event_detail', event_id=event.id, page=page-1, search_title=search_title, filter_status=filter_status) }}" class="btn btn-sm btn-secondary">上一页</a>
+        {% else %}
+            <span class="btn btn-sm btn-secondary" style="opacity: 0.5; cursor: not-allowed;">上一页</span>
+        {% endif %}
+        
+        <span style="padding: 0 1rem;">
+            第 {{ page }} / {{ total_pages }} 页，共 {{ total }} 条
+        </span>
+        
+        {% if page < total_pages %}
+            <a href="{{ url_for('reviewer_event_detail', event_id=event.id, page=page+1, search_title=search_title, filter_status=filter_status) }}" class="btn btn-sm btn-secondary">下一页</a>
+        {% else %}
+            <span class="btn btn-sm btn-secondary" style="opacity: 0.5; cursor: not-allowed;">下一页</span>
+        {% endif %}
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="empty-state">
+        <p>暂无文档</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
